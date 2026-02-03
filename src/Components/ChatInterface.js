@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Chat from "../Components/chat";
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const ChatInterface = () => {
   const styles = {
@@ -29,7 +27,7 @@ const ChatInterface = () => {
     subheading: {
       fontSize: '2.5rem',
       fontWeight: '800',
-      background: 'linear-gradient(to right, #00AEEF, #a8df65)',
+      background: 'linear-gradient(to right, #8A2BE2, #DA70D6)',
       WebkitBackgroundClip: 'text',
       WebkitTextFillColor: 'transparent',
       letterSpacing: '-1px'

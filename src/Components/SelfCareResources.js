@@ -26,15 +26,15 @@ const SelfCareResources = () => {
   const [timeLeft, setTimeLeft] = useState(300);
   const [thoughts, setThoughts] = useState('');
   const [selectedPref, setSelectedPref] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+
 
   useEffect(() => {
     if (currentUser && currentUser.uid) {
       fetchUserPreference();
     }
-  }, [currentUser]);
+  }, [currentUser, fetchUserPreference]);
 
-  const fetchUserPreference = async () => {
+  const fetchUserPreference = React.useCallback(async () => {
     if (!currentUser || !currentUser.uid) return;
     try {
       const docRef = doc(db, 'users', currentUser.uid, 'preferences', 'selfcare');
@@ -45,7 +45,7 @@ const SelfCareResources = () => {
     } catch (error) {
       console.error("Error fetching preference:", error);
     }
-  };
+  }, [currentUser]);
 
   const handlePreferenceClick = async (choice) => {
     if (!currentUser) {
@@ -53,15 +53,12 @@ const SelfCareResources = () => {
       return;
     }
 
-    setIsSaving(true);
     setSelectedPref(choice);
     try {
       const docRef = doc(db, 'users', currentUser.uid, 'preferences', 'selfcare');
       await setDoc(docRef, { choice, updatedAt: new Date() });
     } catch (error) {
       console.error("Error saving preference:", error);
-    } finally {
-      setIsSaving(false);
     }
   };
 

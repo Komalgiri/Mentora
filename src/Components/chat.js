@@ -24,7 +24,9 @@ const Chat = () => {
 
   useEffect(() => {
     if (selectedMentor) {
-      setChatHistory([]); // Clear history on mentor switch
+      setChatHistory([]);
+      setMentorOptions([]);
+      setUserInput("");
       fetchMentorGreeting(selectedMentor);
     }
   }, [selectedMentor]);
@@ -42,11 +44,12 @@ const Chat = () => {
     try {
       const response = await fetch("/chatresponse.json");
       const data = await response.json();
-      const mentorName = mentorObj.name === "Rescuer" ? "Relationship Rescuer" : mentorObj.name; // Mapping back key
+      const mentorName = mentorObj.name === "Rescuer" ? "Relationship Rescuer" : mentorObj.name;
 
       if (!data[mentorName]) return;
 
       const mentorData = data[mentorName];
+      // Start with a clean slate
       setChatHistory([
         { sender: "bot", text: mentorData.greeting },
         { sender: "bot", text: mentorData.question }
@@ -70,40 +73,49 @@ const Chat = () => {
       const mentorData = data[mentorName];
       const userMessageLower = userMessage.trim().toLowerCase();
 
-      const matchedOption = mentorData.options.find(
-        (option) => option.toLowerCase() === userMessageLower
-      );
+      // Find the response path based on current options or main categories
+      const matchedOption = mentorData.options.find(o => o.toLowerCase() === userMessageLower) ||
+        Object.keys(mentorData.responses || {}).find(k => k.toLowerCase() === userMessageLower);
 
       if (matchedOption) {
-        const responseMessage = mentorData.responses?.[matchedOption];
-        return responseMessage
-          ? { reply: responseMessage.message, options: responseMessage.followUp || responseMessage.responseMessages?.[matchedOption] || [] } // Handle various JSON structures
-          : { reply: "I'm not sure about that. Can you pick one of the options below?" };
+        let responseData = mentorData.responses?.[matchedOption];
+        if (!responseData) return { reply: "I'm listening. Tell me more about that." };
+
+        // Handle nested response data (checking sub-options)
+        let replyData = responseData.message || responseData.text || responseData;
+
+        // NEW: If the reply is an array, pick a random one for variety and unique chat
+        if (Array.isArray(replyData)) {
+          replyData = replyData[Math.floor(Math.random() * replyData.length)];
+        }
+
+        const gif = responseData.gif || null;
+        const followUp = responseData.followUp || responseData.options || responseData.responseMessages?.[matchedOption];
+
+        return {
+          reply: typeof replyData === 'string' ? replyData : (replyData.text || replyData.message || "I see. Tell me more."),
+          gif: gif || replyData.gif,
+          options: followUp || []
+        };
       }
 
-      // Basic fuzzy check or fallback
-      // For now, simple fallback
-      return { reply: "I focus on specific topics to help you best. Could you choose an option?", options: mentorData.options };
-
+      return { reply: "I see. How does that make you feel?", options: mentorData.options };
     } catch (error) {
       console.error("Error fetching chatbot data:", error);
-      return { reply: "Something went wrong. Please try again." };
+      return { reply: "I'm momentarily disconnected. Let's try again." };
     }
   };
 
   const handleOptionClick = async (option) => {
-    if (!selectedMentor) return;
-    setChatHistory((prev) => [...prev, { sender: "user", text: option }]);
+    if (!selectedMentor || isLoading) return; // Prevent double clicks
 
-    // Simulate thinking delay
+    setChatHistory((prev) => [...prev, { sender: "user", text: option }]);
     setIsLoading(true);
-    setMentorOptions([]); // Hide options while thinking
+    setMentorOptions([]);
 
     setTimeout(async () => {
       const response = await fetchChatbotData(selectedMentor, option);
 
-      // Handle nested response structures if any (simplified here)
-      // If response.options is an object, we might need to render keys
       let nextOptions = [];
       if (Array.isArray(response.options)) {
         nextOptions = response.options;
@@ -111,15 +123,19 @@ const Chat = () => {
         nextOptions = Object.keys(response.options);
       }
 
-      setChatHistory((prev) => [...prev, { sender: "bot", text: response.reply }]);
+      setChatHistory((prev) => [...prev, {
+        sender: "bot",
+        text: response.reply,
+        gif: response.gif
+      }]);
       setMentorOptions(nextOptions);
       setIsLoading(false);
     }, 600);
   };
 
-  const handleUserInput = async (e) => {
+  const handleUserInput = (e) => {
     e.preventDefault();
-    if (!userInput.trim() || !selectedMentor) return;
+    if (!userInput.trim() || !selectedMentor || isLoading) return;
     handleOptionClick(userInput);
     setUserInput("");
   };
@@ -195,7 +211,7 @@ const Chat = () => {
       fontSize: "1rem"
     },
     sendBtn: {
-      background: "#00AEEF",
+      background: "#8A2BE2",
       color: "white",
       border: "none",
       width: "45px",
@@ -205,27 +221,37 @@ const Chat = () => {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      fontSize: "1.2rem"
+      fontSize: "1.2rem",
+      boxShadow: "0 4px 15px rgba(138, 43, 226, 0.3)"
     },
     botMsg: {
       alignSelf: "flex-start",
-      background: "rgba(255, 255, 255, 0.1)",
-      padding: "12px 18px",
-      borderRadius: "18px 18px 18px 0",
+      background: "rgba(255, 255, 255, 0.08)",
+      padding: "15px 20px",
+      borderRadius: "20px 20px 20px 0",
       maxWidth: "80%",
       color: "#eee",
       fontSize: "0.95rem",
-      lineHeight: "1.5"
+      lineHeight: "1.5",
+      border: "1px solid rgba(255, 255, 255, 0.05)"
     },
     userMsg: {
       alignSelf: "flex-end",
-      background: "linear-gradient(135deg, #00AEEF, #0077b6)",
-      padding: "12px 18px",
-      borderRadius: "18px 18px 0 18px",
+      background: "linear-gradient(135deg, #8A2BE2, #4B0082)",
+      padding: "15px 20px",
+      borderRadius: "20px 20px 0 20px",
       maxWidth: "80%",
       color: "white",
       fontSize: "0.95rem",
-      boxShadow: "0 4px 15px rgba(0, 174, 239, 0.3)"
+      boxShadow: "0 8px 25px rgba(138, 43, 226, 0.2)"
+    },
+    gifStyle: {
+      width: '100%',
+      maxWidth: '250px',
+      borderRadius: '15px',
+      marginTop: '10px',
+      display: 'block',
+      border: '2px solid rgba(138, 43, 226, 0.2)'
     },
     optionsContainer: {
       display: "flex",
@@ -264,7 +290,14 @@ const Chat = () => {
             <button
               key={mentor.name}
               style={styles.mentorBtn(isSelected, mentor.color)}
-              onClick={() => setSelectedMentor(mentor)}
+              onClick={() => {
+                setSelectedMentor(mentor);
+                // Force reset even if same mentor
+                setChatHistory([]);
+                setMentorOptions([]);
+                setUserInput("");
+                fetchMentorGreeting(mentor);
+              }}
             >
               <img
                 src={mentor.image}
@@ -297,7 +330,15 @@ const Chat = () => {
                 transition={{ duration: 0.3 }}
                 style={msg.sender === "bot" ? styles.botMsg : styles.userMsg}
               >
-                {msg.text}
+                <div>{msg.text}</div>
+                {msg.gif && (
+                  <img
+                    src={msg.gif}
+                    alt="Reaction"
+                    style={styles.gifStyle}
+                    loading="lazy"
+                  />
+                )}
               </motion.div>
             ))}
           </AnimatePresence>

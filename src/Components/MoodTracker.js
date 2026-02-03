@@ -12,7 +12,6 @@ const MoodTracker = () => {
   // Modal States
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [isMoodBoostModalOpen, setIsMoodBoostModalOpen] = useState(false);
-  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isBreathingOpen, setIsBreathingOpen] = useState(false);
   const [isJournalOpen, setIsJournalOpen] = useState(false);
 
@@ -21,7 +20,7 @@ const MoodTracker = () => {
   const [streak, setStreak] = useState(0);
   const [avgScore, setAvgScore] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentQuote, setCurrentQuote] = useState("");
+
   const [journalEntry, setJournalEntry] = useState("");
   const [journalHistory, setJournalHistory] = useState([]);
 
@@ -33,12 +32,10 @@ const MoodTracker = () => {
 
   // Game States
   const [isTicTacToeOpen, setIsTicTacToeOpen] = useState(false);
-  const [isRPSOpen, setIsRPSOpen] = useState(false);
-  const [isJumbleOpen, setIsJumbleOpen] = useState(false);
+
   const [ticTacToeBoard, setTicTacToeBoard] = useState(Array(9).fill(null));
   const [winner, setWinner] = useState(null);
-  const [rpsResult, setRpsResult] = useState(null);
-  const [jumbleData, setJumbleData] = useState({ word: "", scrambled: "", input: "", message: "" });
+
 
   const wordList = ["HAPPY", "CALM", "PEACE", "SMILE", "FOCUS", "LAUGH", "DREAM", "HOPE", "LOVE", "JOY"];
 
@@ -62,9 +59,9 @@ const MoodTracker = () => {
     } else {
       setIsLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     if (!currentUser || !currentUser.uid) return;
     setIsLoading(true);
     try {
@@ -95,7 +92,7 @@ const MoodTracker = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentUser]);
 
   const calculateStreak = (data) => {
     const sorted = [...data].sort((a, b) => b.timestamp - a.timestamp);
@@ -289,12 +286,6 @@ const MoodTracker = () => {
         <Modal onClose={() => setIsMoodBoostModalOpen(false)}>
           <h3>Games</h3>
           <button style={{ ...s_style.btn, background: "#222" }} onClick={() => { setIsTicTacToeOpen(true); setIsMoodBoostModalOpen(false); }}>🎮 Tic Tac Toe</button>
-          <button style={{ ...s_style.btn, background: "#222" }} onClick={() => { setIsRPSOpen(true); setIsMoodBoostModalOpen(false); }}>✂️ RPS</button>
-          <button style={{ ...s_style.btn, background: "#222" }} onClick={() => {
-            const w = wordList[Math.floor(Math.random() * wordList.length)];
-            setJumbleData({ word: w, scrambled: w.split('').sort(() => Math.random() - .5).join(''), input: "", message: "" });
-            setIsJumbleOpen(true); setIsMoodBoostModalOpen(false);
-          }}>🔠 Jumble</button>
         </Modal>
       )}
 

@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/firebase';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FaTrophy, FaChartLine, FaMoon, FaSmile, FaChevronLeft, FaStar, FaFire, FaMedal } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { FaTrophy, FaChartLine, FaSmile, FaChevronLeft, FaStar, FaFire, FaMedal } from 'react-icons/fa';
 
 const Profile = () => {
     const { currentUser, logout } = useAuth();
@@ -12,17 +12,15 @@ const Profile = () => {
     const [moodLogs, setMoodLogs] = useState([]);
     const [gamification, setGamification] = useState({ totalPoints: 0, level: 1 });
     const [correlation, setCorrelation] = useState(null);
-    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (currentUser && currentUser.uid) {
             fetchAllData();
         }
-    }, [currentUser]);
+    }, [currentUser, fetchAllData]);
 
-    const fetchAllData = async () => {
+    const fetchAllData = React.useCallback(async () => {
         if (!currentUser || !currentUser.uid) return;
-        setLoading(true);
         try {
             const mq = query(collection(db, "users", currentUser.uid, "mood_logs"), orderBy("createdAt", "desc"), limit(20));
             const moodSnap = await getDocs(mq);
@@ -42,10 +40,8 @@ const Profile = () => {
             calculateCorrelation(mLogs, sLogs);
         } catch (error) {
             console.error("Error fetching profile data:", error);
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [currentUser]);
 
     const calculateCorrelation = (mLogs, sLogs) => {
         if (mLogs.length < 3 || sLogs.length < 3) return;
