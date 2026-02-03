@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import CreativeBG from '../assets/CreativeBG.jpeg';
 
 const Creative = () => {
@@ -28,6 +29,8 @@ const Creative = () => {
     "Draw your current mood using shapes and colors.",
     "Design an emoji that represents how you feel today.",
   ];
+
+  const navigate = useNavigate();
 
   const handleGeneratePrompt = () => {
     const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
@@ -78,7 +81,27 @@ const Creative = () => {
       justifyContent: 'center',
       minHeight: '100vh',
       padding: '20px',
+      position: 'relative'
     }}>
+      <button
+        onClick={() => navigate('/chat/self-care')}
+        style={{
+          position: 'absolute',
+          top: '20px',
+          left: '20px',
+          background: 'rgba(0,0,0,0.5)',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.2)',
+          padding: '10px 20px',
+          borderRadius: '12px',
+          cursor: 'pointer',
+          backdropFilter: 'blur(10px)',
+          zIndex: 100
+        }}
+      >
+        &larr; Back
+      </button>
+
       <div style={{
         backgroundColor: 'rgba(0, 0, 0, 0.7)',
         borderRadius: '10px',
@@ -112,7 +135,7 @@ const Creative = () => {
             }}>Tap the button to generate a prompt!</p>
           )}
         </div>
-        <button 
+        <button
           style={{
             backgroundColor: '#000000',
             color: '#FFFFFF',
@@ -123,7 +146,7 @@ const Creative = () => {
             border: 'none',
             cursor: 'pointer',
             marginBottom: '20px',
-          }} 
+          }}
           onClick={handleGeneratePrompt}
         >
           Generate Prompt
@@ -166,8 +189,8 @@ const Creative = () => {
               />
             </div>
           ) : (
-            <textarea 
-              placeholder="Express yourself here..." 
+            <textarea
+              placeholder="Express yourself here..."
               style={{
                 width: '100%',
                 height: '150px',
@@ -179,7 +202,7 @@ const Creative = () => {
               }}
             />
           )}
-          
+
           {/* Only show the brush settings if in drawing mode */}
           {isDrawingPrompt && (
             <div style={{
@@ -187,10 +210,10 @@ const Creative = () => {
             }}>
               <div>
                 <label style={{ fontSize: '16px', color: '#333' }}>Brush Color:</label>
-                <input 
-                  type="color" 
-                  value={color} 
-                  onChange={(e) => setColor(e.target.value)} 
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
                   style={{ marginLeft: '10px', cursor: 'pointer' }}
                 />
               </div>
@@ -198,12 +221,12 @@ const Creative = () => {
                 marginTop: '10px',
               }}>
                 <label style={{ fontSize: '16px', color: '#333' }}>Brush Size:</label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="10" 
-                  value={brushSize} 
-                  onChange={(e) => setBrushSize(e.target.value)} 
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={brushSize}
+                  onChange={(e) => setBrushSize(e.target.value)}
                   style={{ marginLeft: '10px', cursor: 'pointer' }}
                 />
               </div>

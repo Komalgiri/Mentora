@@ -1,20 +1,45 @@
-// Sleeptool.js
-
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Assuming React Router is used for navigation
-import SleeptoolBG from '../assets/SleeptoolBG.jpeg'; // Import the local image
+import { useNavigate } from 'react-router-dom';
+import SleeptoolBG from '../assets/SleeptoolBG.jpeg';
+import { db } from '../firebase/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { addPoints } from '../utils/gamification';
 
 const Sleeptool = () => {
+    const { currentUser } = useAuth();
     const [showModal, setShowModal] = useState(true);
     const [activeTab, setActiveTab] = useState('Tips'); // "Tips", "Timer", "Notes"
     const [sleepTime, setSleepTime] = useState('');
     const [wakeTime, setWakeTime] = useState('');
     const [notes, setNotes] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
 
     const handleClose = () => {
         setShowModal(false);
-        navigate('/chat/self-care'); // Navigate to SelfCareResources.js
+        navigate('/chat/self-care');
+    };
+
+    const handleSaveSleep = async () => {
+        const hours = calculateSleepHours();
+        if (!hours || !currentUser) return;
+
+        setIsSaving(true);
+        try {
+            await addDoc(collection(db, "users", currentUser.uid, "sleep_logs"), {
+                hours: parseFloat(hours),
+                notes,
+                createdAt: serverTimestamp()
+            });
+            await addPoints(currentUser.uid, 'SLEEP_LOG');
+            alert("Sleep log saved! +10 Points");
+            handleClose();
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const calculateSleepHours = () => {
@@ -24,7 +49,7 @@ const Sleeptool = () => {
         const sleepMinutes = sleepH * 60 + sleepM;
         const wakeMinutes = wakeH * 60 + wakeM;
         let duration = wakeMinutes - sleepMinutes;
-        if (duration < 0) duration += 24 * 60; // Handle overnight sleep
+        if (duration < 0) duration += 24 * 60;
         return (duration / 60).toFixed(1);
     };
 
@@ -94,6 +119,13 @@ const Sleeptool = () => {
                                     <p>Improve your sleep schedule!</p>
                                 </>
                             )}
+                            <button
+                                onClick={handleSaveSleep}
+                                disabled={isSaving}
+                                style={{ marginTop: '10px', padding: '8px 16px', borderRadius: '10px', border: 'none', background: '#00f2fe', color: '#000', fontWeight: 'bold' }}
+                            >
+                                {isSaving ? "Saving..." : "Save Session"}
+                            </button>
                         </div>
                     )}
                 </div>
@@ -112,6 +144,8 @@ const Sleeptool = () => {
                             borderRadius: '10px',
                             border: 'none',
                             fontFamily: 'Arial, sans-serif',
+                            background: 'rgba(255,255,255,0.05)',
+                            color: '#fff'
                         }}
                     />
                 </div>
@@ -138,11 +172,13 @@ const Sleeptool = () => {
                     style={{
                         backgroundColor: 'rgba(0, 0, 0, 0.7)',
                         padding: '20px',
-                        borderRadius: '10px',
+                        borderRadius: '20px',
                         textAlign: 'center',
                         width: '90%',
                         maxWidth: '400px',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+                        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255,255,255,0.1)'
                     }}
                 >
                     <div
@@ -163,8 +199,8 @@ const Sleeptool = () => {
                                         cursor: 'pointer',
                                         padding: '5px 10px',
                                         borderRadius: '5px',
-                                        backgroundColor: activeTab === tab ? '#6a5acd' : 'transparent',
-                                        color: activeTab === tab ? '#fff' : '#bbb',
+                                        backgroundColor: activeTab === tab ? '#00f2fe' : 'transparent',
+                                        color: activeTab === tab ? '#000' : '#bbb',
                                     }}
                                 >
                                     {['💡', '⏱', '📝'][index]}
@@ -178,16 +214,15 @@ const Sleeptool = () => {
                         style={{
                             marginTop: '20px',
                             padding: '10px 20px',
-                            background: 'linear-gradient(45deg, #6a5acd, #8a2be2)',
+                            background: 'rgba(255,255,255,0.1)',
                             color: '#fff',
-                            border: 'none',
-                            borderRadius: '5px',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            borderRadius: '10px',
                             cursor: 'pointer',
                             fontWeight: 'bold',
-                            boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
                         }}
                     >
-                        Got it!
+                        Dismiss
                     </button>
                 </div>
             )}

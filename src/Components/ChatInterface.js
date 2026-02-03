@@ -1,118 +1,52 @@
 import React, { useState } from 'react';
 import Chat from "../Components/chat";
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ChatInterface = () => {
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-  const toggleProfileMenu = () => {
-    setShowProfileMenu(!showProfileMenu);
-  };
-
-  const handleProfileAction = (action) => {
-    console.log(action);
-    setShowProfileMenu(false);
-  };
-
   const styles = {
     chatContainer: {
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      width: '100vw',  // Ensures full width
-      height: '100vh',
-      backgroundColor: '#141414',
-      color: '#fff',
-      overflow: 'hidden',
-      textAlign: 'center',
-      boxSizing: 'border-box',
-    },
-    headerContainer: {
-      display: 'flex',
-      justifyContent: 'space-between',
       alignItems: 'center',
       width: '100%',
-      padding: '10px 20px',
-      position: 'absolute',
-      top: 0,
-      left: '50%',  // Center the header
-      transform: 'translateX(-50%)',
       backgroundColor: 'transparent',
-      boxSizing: 'border-box',
+      color: '#fff',
+      padding: '20px',
+    },
+    branding: {
+      marginTop: '20px',
+      marginBottom: '30px',
+      textAlign: 'center',
     },
     heading: {
-      fontSize: '24px',
-      fontWeight: 'bold',
-      marginBottom: '10px',
-      opacity: 0,
-      animation: 'slideIn 1s ease-in-out forwards',
+      fontSize: '1.2rem',
+      fontWeight: '400',
+      color: '#666',
+      marginBottom: '5px',
     },
     subheading: {
-      fontSize: '40px',
-      fontWeight: 'bold',
-      color: '#00AEEF',
-      opacity: 0,
-      animation: 'slideIn 1.5s ease-in-out forwards',
-    },
-    profileIcon: {
-      cursor: 'pointer',
-      position: 'relative',
-      fontSize: '18px',
-      fontWeight: 'bold',
-      backgroundColor: '#00AEEF',
-      color: '#fff',
-      padding: '8px 12px',
-      borderRadius: '50%',
-    },
-    profileMenu: {
-      position: 'absolute',
-      right: 0,
-      top: '30px',
-      backgroundColor: '#222',
-      color: '#fff',
-      borderRadius: '5px',
-      boxShadow: '0px 4px 6px rgba(0,0,0,0.1)',
-      zIndex: 10,
-    },
-    profileMenuItem: {
-      padding: '10px 15px',
-      cursor: 'pointer',
-      borderBottom: '1px solid #444',
-    },
+      fontSize: '2.5rem',
+      fontWeight: '800',
+      background: 'linear-gradient(to right, #00AEEF, #a8df65)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      letterSpacing: '-1px'
+    }
   };
 
   return (
     <div style={styles.chatContainer}>
-      <style>
-        {`
-          @keyframes slideIn {
-            from {
-              transform: translateY(-20px);
-              opacity: 0;
-            }
-            to {
-              transform: translateY(0);
-              opacity: 1;
-            }
-          }
-        `}
-      </style>
-
-      <div style={styles.headerContainer}>
-        <div style={styles.profileIcon} onClick={toggleProfileMenu}>
-          P
-          {showProfileMenu && (
-            <div style={styles.profileMenu}>
-              <div style={styles.profileMenuItem} onClick={() => handleProfileAction('Profile')}>Profile</div>
-              <div style={styles.profileMenuItem} onClick={() => handleProfileAction('Settings')}>Settings</div>
-              <div style={styles.profileMenuItem} onClick={() => handleProfileAction('Logout')}>Logout</div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div style={styles.heading}>Here is your perfect Chat partner</div>
-      <div style={styles.subheading}>Mentora</div>
+      <motion.div
+        style={styles.branding}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h2 style={styles.heading}>Your Mental Health Partner</h2>
+        <h1 style={styles.subheading}>Mentora.AI</h1>
+      </motion.div>
 
       <Chat />
     </div>

@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  FaSpa, FaLeaf, FaBed, FaPalette, FaMoon, FaGamepad,
+  FaEdit, FaRunning, FaBook, FaPhoneSlash, FaTint,
+  FaSun, FaWind, FaCheckCircle, FaStar
+} from 'react-icons/fa';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../firebase/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { addPoints } from '../utils/gamification';
+
+// Import Assets
 import sleepImage from '../assets/sleep.jpg';
 import playImage from '../assets/Play.jpg';
 import creativeImage from '../assets/creative.jpg';
@@ -8,299 +20,266 @@ import exerciseImage from '../assets/exercise.jpg';
 import readingImage from '../assets/reading.jpg';
 
 const SelfCareResources = () => {
-  const [activeActivity, setActiveActivity] = useState(null); // Track which modal is open
-  const [timeLeft, setTimeLeft] = useState(300); // Timer in seconds (5 minutes = 300 seconds)
-  const [inputText, setInputText] = useState(''); // State for input fields
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const [activeTool, setActiveTool] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [thoughts, setThoughts] = useState('');
+  const [selectedPref, setSelectedPref] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleCardClick = (activity) => {
-    setActiveActivity(activity);
-    setTimeLeft(300); // Reset to 5 minutes whenever the modal opens
-  };
-
-  const closeModal = () => {
-    setActiveActivity(null); // Close the modal
-    setTimeLeft(300); // Reset timer when modal closes
-    setInputText(''); // Clear input when modal closes
-  };
-
-  // Timer effect
   useEffect(() => {
-    if (!activeActivity || activeActivity === 'Sleep Support Tools') return; // Stop timer for sleep modal or when modal is closed
-    if (timeLeft <= 0) return; // Stop timer when countdown reaches 0
+    if (currentUser && currentUser.uid) {
+      fetchUserPreference();
+    }
+  }, [currentUser]);
 
-    const timerId = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timerId); // Cleanup timer on component unmount
-  }, [activeActivity, timeLeft]);
-
-  // Function to format time as MM:SS
-  const formatTime = (time) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = time % 60;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  const fetchUserPreference = async () => {
+    if (!currentUser || !currentUser.uid) return;
+    try {
+      const docRef = doc(db, 'users', currentUser.uid, 'preferences', 'selfcare');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setSelectedPref(docSnap.data().choice);
+      }
+    } catch (error) {
+      console.error("Error fetching preference:", error);
+    }
   };
 
-  // Inline styling for cards
-  const cardStyle = {
-    backgroundColor: '#1c1c1e',
-    color: '#fff',
-    borderRadius: '8px',
-    padding: '20px',
-    margin: '10px',
-    textAlign: 'center',
-    flex: 1,
-    cursor: 'pointer',
+  const handlePreferenceClick = async (choice) => {
+    if (!currentUser) {
+      setSelectedPref(choice); // Local only for guest
+      return;
+    }
+
+    setIsSaving(true);
+    setSelectedPref(choice);
+    try {
+      const docRef = doc(db, 'users', currentUser.uid, 'preferences', 'selfcare');
+      await setDoc(docRef, { choice, updatedAt: new Date() });
+    } catch (error) {
+      console.error("Error saving preference:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const inputStyle = {
-    marginTop: '10px',
-    padding: '8px',
-    borderRadius: '4px',
-    border: '1px solid transparent', // Make border transparent
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Semi-transparent background
-    width: '80%',
-    color: '#fff', // Text color
+  const handleMeditationComplete = async () => {
+    if (currentUser) {
+      await addPoints(currentUser.uid, 'MEDITATION');
+      alert("Meditation complete! +20 Points added to your wellness level.");
+    }
+    setActiveTool(null);
   };
 
-  // Styles for free-time preference cards with image, heading, and quote
-  const freeTimeCardStyle = {
-    backgroundColor: '#2a2a2a', // Dim black background
-    color: '#fff',
-    borderRadius: '8px',
-    width: '200px',
-    height: '280px',
-    margin: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    textAlign: 'center',
-    padding: '10px',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)', // Add subtle shadow
-    cursor: 'pointer',
-  };
-  
-  const imageStyle = {
-    width: '80%',
-    height: '120px',
-    borderRadius: '8px',
-    objectFit: 'cover', // Ensure image is not distorted
-  };
-  
-  const quoteStyle = {
-    fontStyle: 'italic',
-    fontSize: '0.9em',
-    color: '#ccc',
-  };
-  
+  const mainTools = [
+    {
+      id: 'meditation',
+      title: 'Guided Meditation',
+      icon: <FaSpa />,
+      desc: '5-minute session to center your mind and find inner peace.',
+      color: '#a8df65',
+      action: 'Start Timer'
+    },
+    {
+      id: 'grounding',
+      title: 'Grounding Drill',
+      icon: <FaLeaf />,
+      desc: 'A 5-4-3-2-1 technique to pull you back into the present moment.',
+      color: '#4facfe',
+      action: 'Start Quiz',
+      path: '/chat/question-ans'
+    },
+    {
+      id: 'sleep',
+      title: 'Sleep Hygiene',
+      icon: <FaBed />,
+      desc: 'Optimize your rest with our specialized tracking tools.',
+      color: '#9370db',
+      action: 'Track Sleep',
+      path: '/chat/sleeptool'
+    },
+    {
+      id: 'creative',
+      title: 'Creative Space',
+      icon: <FaPalette />,
+      desc: 'Unleash your thoughts through free-form artistic expression.',
+      color: '#ff69b4',
+      action: 'Open Canvas',
+      path: '/chat/creative'
+    }
+  ];
 
+  const freeTimeActivities = [
+    { title: 'Sleep', img: sleepImage, quote: 'Rest is the best meditation.', icon: <FaMoon /> },
+    { title: 'Play', img: playImage, quote: 'Play is our brain’s favorite way to learn.', icon: <FaGamepad /> },
+    { title: 'Create', img: creativeImage, quote: 'Creativity is intelligence having fun.', icon: <FaEdit /> },
+    { title: 'Meditate', img: meditationImage, quote: 'Quiet the mind, and the soul will speak.', icon: <FaStar /> },
+    { title: 'Exercise', img: exerciseImage, quote: 'Your body is your temple.', icon: <FaRunning /> },
+    { title: 'Read', img: readingImage, quote: 'A room without books is like a body without a soul.', icon: <FaBook /> }
+  ];
 
+  useEffect(() => {
+    let timer;
+    if (activeTool === 'meditation' && timeLeft > 0) {
+      timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+    }
+    return () => clearInterval(timer);
+  }, [activeTool, timeLeft]);
+
+  const formatTime = (s_time) => {
+    const mins = Math.floor(s_time / 60);
+    const secs = s_time % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const s = {
+    container: { padding: '20px', background: '#0a0a0a', minHeight: '100vh', color: '#fff', fontFamily: "'Inter', sans-serif" },
+    header: { marginBottom: '30px', textAlign: 'center' },
+    grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', maxWidth: '1100px', margin: '0 auto', justifyContent: 'center' },
+    toolCard: { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '24px', padding: '25px', display: 'flex', flexDirection: 'column', gap: '15px', height: '100%' },
+    iconBox: (color) => ({ width: '50px', height: '50px', borderRadius: '15px', background: `${color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', color: color }),
+    btn: (color) => ({ background: color, color: '#000', border: 'none', padding: '12px', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', marginTop: 'auto' }),
+
+    sectionHeader: { marginTop: '50px', marginBottom: '20px', textAlign: 'center', fontSize: '1.2rem', fontWeight: 'bold', color: '#888', letterSpacing: '2px' },
+    activityScroll: { display: 'flex', gap: '20px', overflowX: 'auto', padding: '10px 0', scrollbarWidth: 'none', paddingLeft: '20px', paddingRight: '20px' },
+    activityCard: { minWidth: '220px', height: '300px', position: 'relative', borderRadius: '20px', overflow: 'hidden', cursor: 'pointer', border: '2px solid transparent', transition: 'all 0.3s' },
+    selectedCard: { borderColor: '#00AEEF', boxShadow: '0 0 15px rgba(0, 174, 239, 0.4)' },
+    activityOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px', background: 'linear-gradient(transparent, rgba(0,0,0,0.95))' },
+
+    modalBackdrop: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    modal: { background: '#161616', border: '1px solid #333', borderRadius: '28px', padding: '40px', width: '90%', maxWidth: '400px', textAlign: 'center' }
+  };
 
   return (
-    <div style={{ backgroundColor: '#000', padding: '20px', minHeight: '100vh' }}>
-      <h1 style={{ color: '#fff' }}>Self-Care Resources</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        {/* Guided Meditation Card */}
-        <div style={cardStyle} onClick={() => handleCardClick('Guided Meditation')}>
-          <span role="img" aria-label="meditation" style={{ fontSize: '2em' }}>🧘</span>
-          <h2>Guided Meditation</h2>
-        </div>
-
-        {/* Grounding Techniques Card */}
-        <div style={cardStyle} onClick={() => handleCardClick('Grounding Techniques')}>
-          <span role="img" aria-label="grounding" style={{ fontSize: '2em' }}>🌱</span>
-          <h2>Grounding Techniques</h2>
-        </div>
-
-        {/* Sleep Support Tools Card */}
-        <div style={cardStyle} onClick={() => handleCardClick('Sleep Support Tools')}>
-          <span role="img" aria-label="sleep" style={{ fontSize: '2em' }}>💤</span>
-          <h2>Sleep Support Tools</h2>
-        </div>
-
-        {/* Creative Expression Card */}
-        <div style={cardStyle} onClick={() => handleCardClick('Creative Expression')}>
-          <span role="img" aria-label="creativity" style={{ fontSize: '2em' }}>🎨</span>
-          <h2>Creative Expression</h2>
-        </div>
+    <div style={s.container}>
+      <div style={s.header}>
+        <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '10px', background: 'linear-gradient(to right, #fff, #888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Self-Care Hub</motion.h1>
+        <p style={{ color: '#666' }}>Daily rituals for a balanced mind and body.</p>
       </div>
 
-      {/* Heading for free-time preference */}
-      <h2 style={{ color: '#fff', textAlign: 'center', marginTop: '30px' }}>WHAT YOU PREFER TO DO IN FREE TIME</h2>
-
-      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap' }}>
-        {/* Free-time preference cards */}
-        <div style={freeTimeCardStyle}>
-          <img src={sleepImage} alt="Sleep" style={imageStyle} />
-          <h3>SLEEP</h3>
-          <p style={quoteStyle}>"Rest and recharge."</p>
-        </div>
-        <div style={freeTimeCardStyle}>
-          <img src={playImage} alt="Play" style={imageStyle} />
-          <h3>PLAY</h3>
-          <p style={quoteStyle}>"Find joy in the little things."</p>
-        </div>
-        <div style={freeTimeCardStyle}>
-          <img src={creativeImage} alt="Creative Activities" style={imageStyle} />
-          <h3>Creative Activities</h3>
-          <p style={quoteStyle}>"Express your inner artist."</p>
-        </div>
-        <div style={freeTimeCardStyle}>
-          <img src={meditationImage} alt="Meditation" style={imageStyle} />
-          <h3>Meditation</h3>
-          <p style={quoteStyle}>"Find peace within."</p>
-        </div>
-        <div style={freeTimeCardStyle}>
-          <img src={exerciseImage} alt="Exercise" style={imageStyle} />
-          <h3>Exercise</h3>
-          <p style={quoteStyle}>"Stay strong, stay healthy."</p>
-        </div>
-        <div style={freeTimeCardStyle}>
-          <img src={readingImage} alt="Reading" style={imageStyle} />
-          <h3>Reading</h3>
-          <p style={quoteStyle}>"Explore new worlds in words."</p>
-        </div>
+      <div style={s.grid}>
+        {mainTools.map((tool, idx) => (
+          <motion.div
+            key={tool.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1 }}
+            whileHover={{ y: -5, background: 'rgba(255,255,255,0.05)' }}
+            style={s.toolCard}
+          >
+            <div style={s.iconBox(tool.color)}>{tool.icon}</div>
+            <h3 style={{ margin: 0, fontSize: '1.3rem' }}>{tool.title}</h3>
+            <p style={{ margin: 0, fontSize: '0.9rem', color: '#aaa', lineHeight: '1.5' }}>{tool.desc}</p>
+            <button
+              style={s.btn(tool.color)}
+              onClick={() => {
+                if (tool.path) navigate(tool.path);
+                else setActiveTool(tool.id);
+              }}
+            >
+              {tool.action}
+            </button>
+          </motion.div>
+        ))}
       </div>
 
-
-      {/* Modal for activities */}
-      {activeActivity && (
-        <div style={modalOverlayStyle} onClick={closeModal}>
-          <div style={modalStyle} className="flip-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>{activeActivity}</h2>
-            {activeActivity === 'Guided Meditation' && (
-              <p>Take a 5-minute break to meditate with soothing music.</p>
-            )}
-            {activeActivity === 'Grounding Techniques' && (
-              <>
-                <p>"Calmness is a superpower. The ability to not overreact or take things personally keeps your mind clear and your heart at peace."</p>
-                <button onClick={() => navigate('/question-ans')} style={quizButtonStyle}>Start Quiz</button>
-              </>
-            )}
-            {activeActivity === 'Sleep Support Tools' && (
-              <>
-                <h2>TRACK YOUR EVERYDAY SLEEP WITH US</h2>
-                <p>Don’t give up on your dreams so soon, sleep longer</p>
-                <button onClick={() => navigate('/sleeptool')} style={arrowButtonStyle}>→</button>
-              </>
-            )}
-            {activeActivity === 'Creative Expression' && (
-              <>
-                <h2>LETS CREATE SOMETHING</h2>
-                <p>lets see what you up too!!</p>
-                <button onClick={() => navigate('/creative')} style={arrowButtonStyle}>Lets Go</button>
-              </>
-            )}
-            {activeActivity !== 'Creative Expression' && activeActivity !== 'Grounding Techniques' && activeActivity !== 'Sleep Support Tools' && (
-              <div style={timerCircleStyle}>
-                <span style={timerTextStyle}>{formatTime(timeLeft)}</span>
+      <h2 style={s.sectionHeader}>FREE TIME PREFERENCES</h2>
+      <div style={s.activityScroll}>
+        {freeTimeActivities.map((act, idx) => (
+          <motion.div
+            key={act.title}
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1 }}
+            whileHover={{ scale: 1.02 }}
+            onClick={() => handlePreferenceClick(act.title)}
+            style={{ ...s.activityCard, ...(selectedPref === act.title ? s.selectedCard : {}) }}
+          >
+            <img src={act.img} alt={act.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={s.activityOverlay}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ fontSize: '1.5rem', color: '#00AEEF' }}>{act.icon}</div>
+                {selectedPref === act.title && <FaCheckCircle style={{ color: '#00AEEF', fontSize: '1.2rem' }} />}
               </div>
-            )}
-            {activeActivity !== 'Creative Expression' && activeActivity !== 'Grounding Techniques' && activeActivity !== 'Sleep Support Tools' && (
-              <div style={musicIconStyle}>🎶</div> // Music icon placeholder
-            )}
-            {activeActivity !== 'Creative Expression' && activeActivity !== 'Grounding Techniques' && activeActivity !== 'Sleep Support Tools' && (
-              <input
-                type="text"
-                placeholder={`Share your thoughts on ${activeActivity}`}
-                style={inputStyle}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
+              <h4 style={{ margin: '10px 0 5px 0', fontSize: '1.2rem' }}>{act.title}</h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#ccc', fontStyle: 'italic' }}>{act.quote}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <h2 style={s.sectionHeader}>QUICK WELLNESS TIPS</h2>
+      <div style={{ ...s.grid, gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', marginBottom: '100px' }}>
+        {[
+          { t: 'Digital Detox', d: 'Avoid screens for at least 30 mins before sleep.', i: <FaPhoneSlash /> },
+          { t: 'Hydration', d: 'A glass of water can significantly boost energy.', i: <FaTint /> },
+          { t: 'Sunlight', d: '10 mins of sun exposure improves your mood.', i: <FaSun /> },
+          { t: 'Deep Breaths', d: 'Reset your nervous system with 3 deep inhales.', i: <FaWind /> }
+        ].map((tip, idx) => (
+          <motion.div
+            key={tip.t}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: idx * 0.1 }}
+            style={{ ...s.toolCard, padding: '20px', textAlign: 'center', height: 'auto' }}
+          >
+            <div style={{ fontSize: '1.5rem', marginBottom: '10px', color: '#888' }}>{tip.i}</div>
+            <h4 style={{ margin: '0 0 5px 0' }}>{tip.t}</h4>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>{tip.d}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {activeTool === 'meditation' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={s.modalBackdrop}
+            onClick={() => setActiveTool(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              style={s.modal}
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 style={{ marginBottom: '10px' }}>Meditation</h2>
+              <p style={{ color: '#aaa', marginBottom: '30px' }}>Focus on your breath. Let thoughts pass like clouds.</p>
+
+              <div style={{ width: '150px', height: '150px', borderRadius: '50%', border: '4px solid #a8df65', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px', position: 'relative' }}>
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  style={{ position: 'absolute', inset: 0, background: '#a8df65', borderRadius: '50%', opacity: 0.1 }}
+                />
+                <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{formatTime(timeLeft)}</span>
+              </div>
+
+              <textarea
+                placeholder="Reflect on your focus..."
+                style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: '12px', padding: '12px', color: '#fff', fontSize: '0.9rem', marginBottom: '20px', height: '80px', resize: 'none' }}
+                value={thoughts}
+                onChange={e => setThoughts(e.target.value)}
               />
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* CSS Animations */}
-      <style>
-        {`
-          .flip-modal {
-            animation: flip 1s ease-out;
-          }
+              <button style={{ ...s.btn('#a8df65'), width: '100%' }} onClick={handleMeditationComplete}>Complete Session</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          @keyframes flip {
-            0% {
-              transform: perspective(600px) rotateY(90deg);
-              opacity: 0;
-            }
-            100% {
-              transform: perspective(600px) rotateY(0);
-              opacity: 1;
-            }
-          }
-        `}
-      </style>
+      <style>{`
+                div::-webkit-scrollbar { display: none; }
+            `}</style>
     </div>
   );
-};
-
-// Styles for modal and icons
-const modalOverlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const modalStyle = {
-  backgroundColor: '#1c1c1e',
-  color: '#fff',
-  padding: '30px',
-  borderRadius: '8px',
-  maxWidth: '300px',
-  textAlign: 'center',
-};
-
-const timerCircleStyle = {
-  width: '100px',
-  height: '100px',
-  borderRadius: '50%',
-  backgroundColor: '#333',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  margin: '20px auto',
-};
-
-const timerTextStyle = {
-  fontSize: '1.5em',
-  color: '#fff',
-};
-
-const musicIconStyle = {
-  fontSize: '2em',
-  cursor: 'pointer',
-};
-
-const quizButtonStyle = {
-  backgroundColor: '#4caf50',
-  color: '#fff',
-  padding: '10px 20px',
-  border: 'none',
-  borderRadius: '5px',
-  cursor: 'pointer',
-  marginTop: '15px',
-};
-
-const arrowButtonStyle = {
-  backgroundColor: '#4caf50',
-  color: '#fff',
-  padding: '20px',
-  borderRadius: '50%',
-  fontSize: '1.5em',
-  cursor: 'pointer',
-  border: 'none',
-  marginTop: '20px',
 };
 
 export default SelfCareResources;
