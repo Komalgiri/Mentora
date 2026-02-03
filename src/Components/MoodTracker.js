@@ -37,7 +37,7 @@ const MoodTracker = () => {
   const [winner, setWinner] = useState(null);
 
 
-  const wordList = ["HAPPY", "CALM", "PEACE", "SMILE", "FOCUS", "LAUGH", "DREAM", "HOPE", "LOVE", "JOY"];
+
 
   const moodTips = {
     Bad: ["Take a deep breath.", "Talk to a friend.", "Try a grounding exercise."],
@@ -52,14 +52,6 @@ const MoodTracker = () => {
     { q: "Able to focus?", options: ["Easily", "Sometimes", "With difficulty"] },
     { q: "Feeling social?", options: ["Yes", "Maybe", "No"] }
   ];
-
-  useEffect(() => {
-    if (currentUser && currentUser.uid) {
-      fetchData();
-    } else {
-      setIsLoading(false);
-    }
-  }, [currentUser, fetchData]);
 
   const fetchData = React.useCallback(async () => {
     if (!currentUser || !currentUser.uid) return;
@@ -93,6 +85,14 @@ const MoodTracker = () => {
       setIsLoading(false);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.uid) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+  }, [currentUser, fetchData]);
 
   const calculateStreak = (data) => {
     const sorted = [...data].sort((a, b) => b.timestamp - a.timestamp);

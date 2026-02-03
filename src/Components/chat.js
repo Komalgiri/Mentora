@@ -22,19 +22,6 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const chatEndRef = useRef(null);
 
-  useEffect(() => {
-    if (selectedMentor) {
-      setChatHistory([]);
-      setMentorOptions([]);
-      setUserInput("");
-      fetchMentorGreeting(selectedMentor);
-    }
-  }, [selectedMentor]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [chatHistory]);
-
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -61,6 +48,19 @@ const Chat = () => {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatHistory]);
+
+  useEffect(() => {
+    if (selectedMentor) {
+      setChatHistory([]);
+      setMentorOptions([]);
+      setUserInput("");
+      fetchMentorGreeting(selectedMentor);
+    }
+  }, [selectedMentor]);
 
   const fetchChatbotData = async (mentorObj, userMessage) => {
     try {

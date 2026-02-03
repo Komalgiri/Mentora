@@ -28,12 +28,6 @@ const SelfCareResources = () => {
   const [selectedPref, setSelectedPref] = useState(null);
 
 
-  useEffect(() => {
-    if (currentUser && currentUser.uid) {
-      fetchUserPreference();
-    }
-  }, [currentUser, fetchUserPreference]);
-
   const fetchUserPreference = React.useCallback(async () => {
     if (!currentUser || !currentUser.uid) return;
     try {
@@ -46,6 +40,12 @@ const SelfCareResources = () => {
       console.error("Error fetching preference:", error);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.uid) {
+      fetchUserPreference();
+    }
+  }, [currentUser, fetchUserPreference]);
 
   const handlePreferenceClick = async (choice) => {
     if (!currentUser) {

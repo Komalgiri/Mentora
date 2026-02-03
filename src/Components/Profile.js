@@ -13,12 +13,6 @@ const Profile = () => {
     const [gamification, setGamification] = useState({ totalPoints: 0, level: 1 });
     const [correlation, setCorrelation] = useState(null);
 
-    useEffect(() => {
-        if (currentUser && currentUser.uid) {
-            fetchAllData();
-        }
-    }, [currentUser, fetchAllData]);
-
     const fetchAllData = React.useCallback(async () => {
         if (!currentUser || !currentUser.uid) return;
         try {
@@ -42,6 +36,12 @@ const Profile = () => {
             console.error("Error fetching profile data:", error);
         }
     }, [currentUser]);
+
+    useEffect(() => {
+        if (currentUser && currentUser.uid) {
+            fetchAllData();
+        }
+    }, [currentUser, fetchAllData]);
 
     const calculateCorrelation = (mLogs, sLogs) => {
         if (mLogs.length < 3 || sLogs.length < 3) return;
