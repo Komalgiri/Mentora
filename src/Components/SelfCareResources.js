@@ -241,7 +241,7 @@ const SelfCareResources = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             style={s.modalBackdrop}
-            onClick={() => setActiveTool(null)}
+          // Removed onClick={null} to prevent accidental closure
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -250,7 +250,10 @@ const SelfCareResources = () => {
               style={s.modal}
               onClick={e => e.stopPropagation()}
             >
-              <h2 style={{ marginBottom: '10px' }}>Meditation</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>Meditation</h2>
+                <button onClick={() => setActiveTool(null)} style={{ background: 'none', border: 'none', color: '#666', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+              </div>
               <p style={{ color: '#aaa', marginBottom: '30px' }}>Focus on your breath. Let thoughts pass like clouds.</p>
 
               <div style={{ width: '150px', height: '150px', borderRadius: '50%', border: '4px solid #a8df65', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 30px', position: 'relative' }}>
@@ -262,6 +265,12 @@ const SelfCareResources = () => {
                 <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>{formatTime(timeLeft)}</span>
               </div>
 
+              {!currentUser && (
+                <div style={{ padding: '10px', background: 'rgba(0, 174, 239, 0.1)', borderRadius: '10px', marginBottom: '20px', fontSize: '0.8rem', color: '#00AEEF' }}>
+                  Guest: Log in to save these 20 XP!
+                </div>
+              )}
+
               <textarea
                 placeholder="Reflect on your focus..."
                 style={{ width: '100%', background: '#222', border: '1px solid #444', borderRadius: '12px', padding: '12px', color: '#fff', fontSize: '0.9rem', marginBottom: '20px', height: '80px', resize: 'none' }}
@@ -269,7 +278,9 @@ const SelfCareResources = () => {
                 onChange={e => setThoughts(e.target.value)}
               />
 
-              <button style={{ ...s.btn('#a8df65'), width: '100%' }} onClick={handleMeditationComplete}>Complete Session</button>
+              <button style={{ ...s.btn('#a8df65'), width: '100%' }} onClick={handleMeditationComplete}>
+                {currentUser ? "Complete & Earn XP" : "Finish Session"}
+              </button>
             </motion.div>
           </motion.div>
         )}

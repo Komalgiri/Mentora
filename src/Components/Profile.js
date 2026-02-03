@@ -49,23 +49,32 @@ const Profile = () => {
 
     const calculateCorrelation = (mLogs, sLogs) => {
         if (mLogs.length < 3 || sLogs.length < 3) return;
+
+        // Group by day - Normalizing dates to YYYY-MM-DD
         const moodMap = {};
         mLogs.forEach(log => {
-            const day = new Date(log.createdAt?.toDate()).toDateString();
-            if (!moodMap[day]) moodMap[day] = [];
-            moodMap[day].push(log.score);
+            if (!log.createdAt) return;
+            const date = log.createdAt.toDate();
+            const dateStr = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+            if (!moodMap[dateStr]) moodMap[dateStr] = [];
+            moodMap[dateStr].push(log.score);
         });
+
         const sleepMap = {};
         sLogs.forEach(log => {
-            const day = new Date(log.createdAt?.toDate()).toDateString();
-            sleepMap[day] = log.hours;
+            if (!log.createdAt) return;
+            const date = log.createdAt.toDate();
+            const dateStr = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+            sleepMap[dateStr] = log.hours;
         });
+
         let goodSleepMoods = [];
         let badSleepMoods = [];
-        Object.keys(sleepMap).forEach(day => {
-            if (moodMap[day]) {
-                const avgMood = moodMap[day].reduce((a, b) => a + b, 0) / moodMap[day].length;
-                if (sleepMap[day] >= 7.5) goodSleepMoods.push(avgMood);
+
+        Object.keys(sleepMap).forEach(dateStr => {
+            if (moodMap[dateStr]) {
+                const avgMood = moodMap[dateStr].reduce((a, b) => a + b, 0) / moodMap[dateStr].length;
+                if (sleepMap[dateStr] >= 7.5) goodSleepMoods.push(avgMood);
                 else badSleepMoods.push(avgMood);
             }
         });

@@ -43,7 +43,8 @@ const AppLayout = () => {
 
   React.useEffect(() => {
     requestNotificationPermission();
-    scheduleReminder(4); // Remind every 4 hours
+    const interval = scheduleReminder(4);
+    return () => clearInterval(interval); // Cleanup to prevent duplicate intervals
   }, []);
 
   const handleLogout = async () => {
@@ -131,15 +132,15 @@ const AppLayout = () => {
         </Link>
         <Link to="mood-tracker" className="nav-item">
           <FaHeartbeat />
-          <span>Mood</span>
+          <span>Studio</span>
         </Link>
         <Link to="self-care" className="nav-item">
           <FaLeaf />
           <span>Care</span>
         </Link>
-        <Link to="story" className="nav-item">
+        <Link to="profile" className="nav-item">
           <FaRainbow />
-          <span>Rewards</span>
+          <span>Profile</span>
         </Link>
       </nav>
     </div>
