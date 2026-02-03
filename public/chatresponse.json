@@ -11,7 +11,7 @@
     "responses": {
       "Happy": {
         "message": "That's wonderful! Happiness is contagious. What made your day so great? 🌟",
-        "gif": "https://media.giphy.com/media/3NtY188QaxDdC/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3NtY188QaxDdC/giphy.gif",
         "followUp": [
           "Spent time with family",
           "Achieved a goal",
@@ -29,7 +29,7 @@
           ],
           "Had fun with friends": {
             "text": "Friends make life better! What did you do together that made it so fun?",
-            "gif": "https://media.giphy.com/media/l41lS2I29iugXnB96/giphy.gif"
+            "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41lS2I29iugXnB96/giphy.gif"
           },
           "Enjoyed a hobby": [
             "That sounds fulfilling! What about this hobby brings you the most joy?",
@@ -39,7 +39,7 @@
       },
       "Sad": {
         "message": "I'm here for you. You’re not alone. Do you want to talk about what's making you feel this way? 💙",
-        "gif": "https://media.giphy.com/media/k9Jw0MW9TV6DbewRqa/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/k9Jw0MW9TV6DbewRqa/giphy.gif",
         "options": [
           "Yes",
           "No"
@@ -51,13 +51,13 @@
           ],
           "No": {
             "text": "That’s okay. Everyone copes differently. Would you like to do something to lift your spirits?",
-            "gif": "https://media.giphy.com/media/3o7TKVUn7iM8FMEU24/giphy.gif"
+            "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKVUn7iM8FMEU24/giphy.gif"
           }
         }
       },
       "Confused": {
         "message": "I understand! Feeling confused can be tough. Do you need help sorting your thoughts? 🤔",
-        "gif": "https://media.giphy.com/media/3o7TKSjP3gYH7Wc9zi/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKSjP3gYH7Wc9zi/giphy.gif",
         "options": [
           "Sorting my thoughts",
           "Making a decision"
@@ -75,7 +75,7 @@
       },
       "Energetic": {
         "message": "Amazing! Energy is a great thing. How would you like to channel it today? ⚡",
-        "gif": "https://media.giphy.com/media/l41lTfuxV6M6Y9Nn2/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41lTfuxV6M6Y9Nn2/giphy.gif",
         "options": [
           "Exercise",
           "Creative activity",
@@ -84,7 +84,7 @@
         "responseMessages": {
           "Exercise": {
             "text": "Nice choice! Exercise keeps both mind and body strong. 🏃‍♂️",
-            "gif": "https://media.giphy.com/media/3o7TKMGpxV3N0E800/giphy.gif"
+            "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKMGpxV3N0E800/giphy.gif"
           },
           "Creative activity": [
             "Creativity is a great way to express yourself! Are you painting or writing today?",
@@ -109,7 +109,7 @@
     "responses": {
       "Work": {
         "message": "Work stress is tough! Would you like to talk about it or try a technique?",
-        "gif": "https://media.giphy.com/media/l41lS2I29iugXnB96/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l41lS2I29iugXnB96/giphy.gif",
         "options": [
           "Talk about it",
           "Try a technique"
@@ -118,7 +118,7 @@
           "Talk about it": "I’m listening. What's the biggest challenge you're facing at work?",
           "Try a technique": {
             "text": "Great choice! Let's try deep breathing. Take a slow breath in for 4 seconds...",
-            "gif": "https://media.giphy.com/media/krP2NRkLqnC1p6v40F/giphy.gif"
+            "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/krP2NRkLqnC1p6v40F/giphy.gif"
           }
         }
       },
@@ -132,13 +132,13 @@
           "Yes": "I’m here for you. Sometimes, just talking can help lighten the burden. 🫂",
           "No": {
             "text": "That’s okay. Let's focus on something calming instead.",
-            "gif": "https://media.giphy.com/media/3o7TKVUn7iM8FMEU24/giphy.gif"
+            "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKVUn7iM8FMEU24/giphy.gif"
           }
         }
       },
       "Overwhelmed": {
         "message": "Feeling overwhelmed is tough. Take a moment with me. 🧘‍♀️",
-        "gif": "https://media.giphy.com/media/k9Jw0MW9TV6DbewRqa/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/k9Jw0MW9TV6DbewRqa/giphy.gif",
         "options": [
           "Take a break",
           "Prioritize"
@@ -162,7 +162,7 @@
     "responses": {
       "A recent dream": {
         "message": "That sounds interesting! Would you like to analyze its meaning or just share it?",
-        "gif": "https://media.giphy.com/media/3NtY188QaxDdC/giphy.gif",
+        "gif": "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydHB2cmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6cjZzcmZ6ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3NtY188QaxDdC/giphy.gif",
         "options": [
           "Analyze meaning",
           "Just share"

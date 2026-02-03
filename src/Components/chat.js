@@ -73,33 +73,55 @@ const Chat = () => {
       const mentorData = data[mentorName];
       const userMessageLower = userMessage.trim().toLowerCase();
 
-      // Find the response path based on current options or main categories
-      const matchedOption = mentorData.options.find(o => o.toLowerCase() === userMessageLower) ||
-        Object.keys(mentorData.responses || {}).find(k => k.toLowerCase() === userMessageLower);
+      // Deep search helper to find the response for a given message
+      const findResponseDeep = (obj) => {
+        if (!obj || typeof obj !== 'object') return null;
 
-      if (matchedOption) {
-        let responseData = mentorData.responses?.[matchedOption];
-        if (!responseData) return { reply: "I'm listening. Tell me more about that." };
+        // Check if this level has the response directly
+        if (obj.responses && obj.responses[userMessage]) return obj.responses[userMessage];
+        if (obj.responseMessages && obj.responseMessages[userMessage]) return obj.responseMessages[userMessage];
 
-        // Handle nested response data (checking sub-options)
-        let replyData = responseData.message || responseData.text || responseData;
+        // Search through keys for case-insensitive match
+        for (let key in obj) {
+          if (key.toLowerCase() === userMessageLower) {
+            // We found the actual response node or a sub-node
+            return obj[key];
+          }
 
-        // NEW: If the reply is an array, pick a random one for variety and unique chat
-        if (Array.isArray(replyData)) {
+          // Recursively search nested objects
+          if (typeof obj[key] === 'object') {
+            const found = findResponseDeep(obj[key]);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      const foundData = findResponseDeep(mentorData);
+
+      if (foundData) {
+        // Handle logic for the found data node
+        let replyData = foundData.message || foundData.text || foundData;
+
+        // If it's an array of messages, pick one
+        if (Array.isArray(replyData) && typeof replyData[0] === 'string') {
           replyData = replyData[Math.floor(Math.random() * replyData.length)];
         }
 
-        const gif = responseData.gif || null;
-        const followUp = responseData.followUp || responseData.options || responseData.responseMessages?.[matchedOption];
+        const gif = foundData.gif || (typeof replyData === 'object' ? replyData.gif : null);
+        const followUp = foundData.followUp || foundData.options || foundData.responseMessages;
 
         return {
-          reply: typeof replyData === 'string' ? replyData : (replyData.text || replyData.message || "I see. Tell me more."),
-          gif: gif || replyData.gif,
-          options: followUp || []
+          reply: typeof replyData === 'string' ? replyData : (replyData.text || replyData.message || "I'm listening. Tell me more."),
+          gif: gif,
+          options: followUp ? (Array.isArray(followUp) ? followUp : Object.keys(followUp)) : []
         };
       }
 
-      return { reply: "I see. How does that make you feel?", options: mentorData.options };
+      return {
+        reply: "I see. Tell me more about how that makes you feel.",
+        options: mentorData.options // Fallback only if totally lost
+      };
     } catch (error) {
       console.error("Error fetching chatbot data:", error);
       return { reply: "I'm momentarily disconnected. Let's try again." };
