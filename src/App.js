@@ -68,7 +68,7 @@ const AppLayout = () => {
         background: 'rgba(10, 10, 10, 0.8)',
         backdropFilter: 'blur(10px)'
       }}>
-        <div onClick={() => navigate('/')} style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem', background: 'linear-gradient(45deg, #00AEEF, #a8df65)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+        <div onClick={() => navigate('/')} style={{ cursor: 'pointer', fontWeight: 'bold', fontSize: '1.2rem', background: 'linear-gradient(45deg, #8A2BE2, #DA70D6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
           Mentora
         </div>
 
@@ -76,7 +76,7 @@ const AppLayout = () => {
           <motion.div
             onClick={() => setShowProfileMenu(!showProfileMenu)}
             whileTap={{ scale: 0.9 }}
-            style={{ width: '35px', height: '35px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}
+            style={{ width: '35px', height: '35px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid rgba(138,43,226,0.2)' }}
           >
             {currentUser ? (currentUser.displayName?.[0].toUpperCase() || 'U') : '👤'}
           </motion.div>
@@ -175,7 +175,7 @@ const styles = `
     flex: 1;
   }
   .nav-item:hover, .nav-item.active {
-    color: #00AEEF;
+    color: #8A2BE2;
   }
   .nav-item span {
     font-size: 10px;

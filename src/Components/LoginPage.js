@@ -66,9 +66,10 @@ const LoginPage = () => {
       backgroundPosition: 'center',
       display: 'flex',
       alignItems: 'center',
-      justifyContent: 'flex-end', // Align to right
+      justifyContent: 'flex-end',
       fontFamily: "'Inter', sans-serif",
-      paddingRight: '5%' // Add some spacing from the edge
+      paddingRight: '5%',
+      overflow: 'hidden' // Prevent page-level scrolling
     },
     rightSection: {
       width: '40%',
@@ -80,31 +81,34 @@ const LoginPage = () => {
     card: {
       width: '100%',
       maxWidth: '420px',
-      padding: '40px',
+      padding: '35px', // Slightly reduced for compactness
       background: 'rgba(20, 20, 20, 0.7)',
-      backdropFilter: 'blur(25px)',
+      backdropFilter: 'blur(30px)',
       borderRadius: '32px',
-      border: '1px solid rgba(255,255,255,0.1)',
+      border: '1px solid rgba(138, 43, 226, 0.2)',
       boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-      color: '#fff'
+      color: '#fff',
+      maxHeight: '90vh', // Ensure it doesn't leave the screen
+      overflowY: 'auto', // Allow internal scroll if needed, but not page scroll
+      scrollbarWidth: 'none'
     },
     inputGroup: {
       position: 'relative',
-      marginBottom: '20px'
+      marginBottom: '18px'
     },
     icon: {
       position: 'absolute',
       left: '15px',
       top: '50%',
       transform: 'translateY(-50%)',
-      color: '#666',
+      color: '#8A2BE2', // Match brand
       fontSize: '0.9rem'
     },
     input: {
       width: '100%',
-      padding: '15px 15px 15px 45px',
-      background: 'rgba(255,255,255,0.05)',
-      border: '1px solid rgba(255,255,255,0.1)',
+      padding: '14px 15px 14px 45px',
+      background: 'rgba(255,255,255,0.03)',
+      border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: '14px',
       color: '#fff',
       fontSize: '0.95rem',
@@ -114,7 +118,7 @@ const LoginPage = () => {
     btnMain: {
       width: '100%',
       padding: '16px',
-      background: 'linear-gradient(135deg, #00AEEF 0%, #0077b6 100%)',
+      background: 'linear-gradient(135deg, #8A2BE2 0%, #4B0082 100%)',
       color: '#fff',
       border: 'none',
       borderRadius: '14px',
@@ -125,23 +129,24 @@ const LoginPage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       gap: '10px',
-      boxShadow: '0 10px 20px -5px rgba(0, 174, 239, 0.4)'
+      boxShadow: '0 10px 20px -5px rgba(138, 43, 226, 0.4)'
     },
     btnGoogle: {
       width: '100%',
       padding: '14px',
-      background: 'rgba(255,255,255,0.05)',
+      background: 'rgba(255,255,255,0.03)',
       color: '#fff',
       border: '1px solid rgba(255,255,255,0.1)',
       borderRadius: '14px',
-      fontSize: '0.9rem',
+      fontSize: '0.95rem',
+      fontWeight: '600',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: '10px',
-      marginTop: '20px',
-      transition: 'background 0.3s'
+      gap: '12px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      marginTop: '5px'
     }
   };
 
@@ -154,7 +159,7 @@ const LoginPage = () => {
           style={s.card}
         >
           <div style={{ textAlign: 'center', marginBottom: '35px' }}>
-            <h1 style={{ fontSize: '2rem', margin: '0 0 10px 0', fontWeight: '800', background: 'linear-gradient(to right, #fff, #888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ fontSize: '2rem', margin: '0 0 10px 0', fontWeight: '800', background: 'linear-gradient(to right, #fff, #8A2BE2)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </h1>
             <p style={{ color: '#888', fontSize: '0.9rem' }}>
@@ -214,20 +219,25 @@ const LoginPage = () => {
           </div>
 
           <motion.button
-            whileHover={{ background: 'rgba(255,255,255,0.1)' }}
+            whileHover={{
+              background: 'rgba(255,255,255,0.08)',
+              borderColor: 'rgba(138, 43, 226, 0.4)',
+              transform: 'translateY(-2px)'
+            }}
+            whileTap={{ scale: 0.98 }}
             disabled={loading}
             onClick={handleGoogleLogin}
             style={s.btnGoogle}
           >
-            <FaGoogle style={{ color: '#4285F4' }} />
-            Connect with Google
+            <FaGoogle style={{ color: '#fff', fontSize: '1.1rem' }} />
+            <span>Connect with Google</span>
           </motion.button>
 
           <p style={{ textAlign: 'center', marginTop: '30px', fontSize: '0.9rem', color: '#888' }}>
             {isLogin ? "New to Mentora? " : 'Already a member? '}
             <span
               onClick={toggleForm}
-              style={{ color: '#00AEEF', cursor: 'pointer', fontWeight: '600', textDecoration: 'none' }}
+              style={{ color: '#8A2BE2', cursor: 'pointer', fontWeight: '600', textDecoration: 'none' }}
             >
               {isLogin ? 'Create one' : 'Sign in'}
             </span>

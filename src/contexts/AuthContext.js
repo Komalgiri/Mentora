@@ -7,7 +7,9 @@ import {
     signOut,
     updateProfile,
     signInWithPopup,
-    GoogleAuthProvider
+    GoogleAuthProvider,
+    setPersistence,
+    browserLocalPersistence
 } from 'firebase/auth';
 
 const AuthContext = React.createContext();
@@ -20,22 +22,23 @@ export function AuthProvider({ children }) {
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    function signup(email, password, username) {
-        return createUserWithEmailAndPassword(auth, email, password).then(async (result) => {
-            // Update the profile with the username immediately after signup
+    async function signup(email, password, username) {
+        try {
+            await setPersistence(auth, browserLocalPersistence);
+            const result = await createUserWithEmailAndPassword(auth, email, password);
             if (username) {
-                await updateProfile(result.user, {
-                    displayName: username
-                });
-                // Force reload user to get the updated display name
+                await updateProfile(result.user, { displayName: username });
                 await result.user.reload();
                 setCurrentUser(auth.currentUser);
             }
             return result;
-        });
+        } catch (error) {
+            throw error;
+        }
     }
 
-    function login(email, password) {
+    async function login(email, password) {
+        await setPersistence(auth, browserLocalPersistence);
         return signInWithEmailAndPassword(auth, email, password);
     }
 
@@ -43,7 +46,8 @@ export function AuthProvider({ children }) {
         return signOut(auth);
     }
 
-    function googleLogin() {
+    async function googleLogin() {
+        await setPersistence(auth, browserLocalPersistence);
         const provider = new GoogleAuthProvider();
         return signInWithPopup(auth, provider);
     }
