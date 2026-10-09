@@ -1,107 +1,154 @@
-import React, { useState, useEffect } from "react";
-import { db } from "../firebase/firebase";
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs } from "firebase/firestore";
-import { useAuth } from "../contexts/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { addPoints } from "../utils/gamification";
+import React, { useState, useEffect } from 'react';
+import { db } from '../firebase/firebase';
+import {
+  collection, addDoc, serverTimestamp,
+  query, orderBy, limit, getDocs,
+} from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, CartesianGrid,
+} from 'recharts';
+import { addPoints } from '../utils/gamification';
 
+/* ── helpers ──────────────────────────────────────────────────── */
+const MOODS = [
+  { label: 'Happy',   emoji: '😊', score: 20, bg: '#d4edda', accent: '#22c55e', tip: "You're glowing! Share that joy 🌈" },
+  { label: 'Angry',   emoji: '😡', score: 8,  bg: '#fde8cc', accent: '#f97316', tip: 'Try 4-7-8 breathing to cool down 🌬️' },
+  { label: 'Tired',   emoji: '😴', score: 10, bg: '#fce4ec', accent: '#ec4899', tip: 'A 20-min nap works wonders 💤'   },
+  { label: 'Sad',     emoji: '🥺', score: 7,  bg: '#d1ecf1', accent: '#0ea5e9', tip: 'It's okay to feel this way 💙'   },
+];
+
+const WEEK_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+/* ── mood card ────────────────────────────────────────────────── */
+const MoodCard = ({ mood, onSelect, selected }) => (
+  <motion.div
+    whileHover={{ y: -4, scale: 1.02 }}
+    whileTap={{ scale: 0.97 }}
+    onClick={() => onSelect(mood)}
+    style={{
+      background: selected ? mood.accent : mood.bg,
+      borderRadius: 24, padding: '20px 16px',
+      cursor: 'pointer', position: 'relative',
+      border: selected ? `2px solid ${mood.accent}` : '2px solid transparent',
+      boxShadow: selected ? `0 8px 24px ${mood.accent}44` : '0 4px 16px rgba(0,0,0,.07)',
+      transition: 'all .25s',
+    }}
+  >
+    <div style={{
+      fontWeight: 800, fontSize: 16,
+      color: selected ? '#fff' : '#1a1a2e',
+      marginBottom: 10,
+    }}>{mood.label}</div>
+    <div style={{ fontSize: 40 }}>{mood.emoji}</div>
+    <div style={{
+      position: 'absolute', bottom: 12, right: 12,
+      fontSize: 11, color: selected ? 'rgba(255,255,255,.7)' : mood.accent,
+      fontWeight: 700,
+    }}>↗</div>
+  </motion.div>
+);
+
+/* ── stat widget ──────────────────────────────────────────────── */
+const Widget = ({ label, children, accent, style }) => (
+  <div style={{
+    borderRadius: 20, padding: 16, overflow: 'hidden',
+    background: accent, ...style,
+  }}>
+    <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,.75)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>{label}</div>
+    {children}
+  </div>
+);
+
+/* ── modal ────────────────────────────────────────────────────── */
+const Modal = ({ children, onClose }) => (
+  <AnimatePresence>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(30,20,60,0.45)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        zIndex: 1000, padding: 20,
+      }}
+    >
+      <motion.div
+        initial={{ scale: 0.88, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.88, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#fff', borderRadius: 28,
+          padding: 28, width: '100%', maxWidth: 380,
+          boxShadow: '0 24px 60px rgba(139,92,246,.2)',
+        }}
+      >
+        {children}
+      </motion.div>
+    </motion.div>
+  </AnimatePresence>
+);
+
+/* ─────────────────────────────────────────────────────────────────
+   MoodTracker
+───────────────────────────────────────────────────────────────── */
 const MoodTracker = () => {
   const { currentUser } = useAuth();
-
-  // Modal States
-  const [showQuizModal, setShowQuizModal] = useState(false);
-  const [isMoodBoostModalOpen, setIsMoodBoostModalOpen] = useState(false);
-  const [isBreathingOpen, setIsBreathingOpen] = useState(false);
-  const [isJournalOpen, setIsJournalOpen] = useState(false);
-
-  // Data States
-  const [moodData, setMoodData] = useState([]);
-  const [streak, setStreak] = useState(0);
-  const [avgScore, setAvgScore] = useState(0);
+  const [view, setView]           = useState('status');   // 'status' | 'insights'
+  const [selectedMood, setSelected] = useState(null);
+  const [moodData, setMoodData]   = useState([]);
+  const [streak, setStreak]       = useState(0);
+  const [avgScore, setAvgScore]   = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [journalOpen, setJournalOpen] = useState(false);
+  const [journalText, setJournalText] = useState('');
+  const [breathOpen, setBreathOpen]   = useState(false);
+  const [toast, setToast]         = useState('');
 
-  const [journalEntry, setJournalEntry] = useState("");
-  const [journalHistory, setJournalHistory] = useState([]);
-
-  // Quiz States
-  const [quizStep, setQuizStep] = useState(0);
-  const [quizScore, setQuizScore] = useState(0);
-  const [mood, setMood] = useState("");
-  const [showTips, setShowTips] = useState(false);
-
-  // Game States
-  const [isTicTacToeOpen, setIsTicTacToeOpen] = useState(false);
-
-  const [ticTacToeBoard, setTicTacToeBoard] = useState(Array(9).fill(null));
-  const [winner, setWinner] = useState(null);
-
-
-
-
-  const moodTips = {
-    Bad: ["Take a deep breath.", "Talk to a friend.", "Try a grounding exercise."],
-    Neutral: ["Go for a walk.", "Listen to music.", "Do some light stretching."],
-    Good: ["You're doing great!", "Share your joy!", "Keep the momentum!"]
-  };
-
-  const quizQuestions = [
-    { q: "How's your mood today?", options: ["Great", "Okay", "Not good"] },
-    { q: "How did you sleep?", options: ["Well rested", "A bit tired", "Hardly slept"] },
-    { q: "Energy levels?", options: ["High", "Medium", "Low"] },
-    { q: "Able to focus?", options: ["Easily", "Sometimes", "With difficulty"] },
-    { q: "Feeling social?", options: ["Yes", "Maybe", "No"] }
-  ];
-
+  /* fetch -------------------------------------------------------- */
   const fetchData = React.useCallback(async () => {
-    if (!currentUser || !currentUser.uid) return;
+    if (!currentUser?.uid) { setIsLoading(false); return; }
     setIsLoading(true);
     try {
       const q = query(
-        collection(db, "users", currentUser.uid, "mood_logs"),
-        orderBy("createdAt", "desc"),
-        limit(30)
+        collection(db, 'users', currentUser.uid, 'mood_logs'),
+        orderBy('createdAt', 'desc'), limit(30),
       );
       const snap = await getDocs(q);
       const data = snap.docs.map(doc => {
         const d = doc.data();
         return {
-          date: d.createdAt?.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) || 'N/A',
+          date: d.createdAt?.toDate().toLocaleDateString(undefined, { month:'short', day:'numeric' }) || 'N/A',
           score: d.score,
-          timestamp: d.createdAt?.toMillis() || 0
+          mood: d.mood,
+          timestamp: d.createdAt?.toMillis() || 0,
         };
       });
-
-      const chartData = [...data].reverse();
-      setMoodData(chartData);
-
+      setMoodData([...data].reverse());
       if (data.length > 0) {
-        setAvgScore((data.reduce((a, b) => a + b.score, 0) / data.length).toFixed(1));
-        calculateStreak(data);
+        setAvgScore((data.reduce((a,b) => a + b.score, 0) / data.length).toFixed(1));
+        calcStreak(data);
       }
-    } catch (e) {
-      console.error("Firestore Error:", e);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch(e) { console.error(e); }
+    finally { setIsLoading(false); }
   }, [currentUser]);
 
-  useEffect(() => {
-    if (currentUser && currentUser.uid) {
-      fetchData();
-    } else {
-      setIsLoading(false);
-    }
-  }, [currentUser, fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  const calculateStreak = (data) => {
-    const sorted = [...data].sort((a, b) => b.timestamp - a.timestamp);
+  const calcStreak = (data) => {
+    const sorted = [...data].sort((a,b) => b.timestamp - a.timestamp);
     let s = 1;
-    const today = new Date().setHours(0, 0, 0, 0);
-    let last = new Date(sorted[0].timestamp).setHours(0, 0, 0, 0);
+    const today = new Date().setHours(0,0,0,0);
+    let last = new Date(sorted[0].timestamp).setHours(0,0,0,0);
     if (today - last > 86400000) { setStreak(0); return; }
-    for (let i = 1; i < sorted.length; i++) {
-      let curr = new Date(sorted[i].timestamp).setHours(0, 0, 0, 0);
+    for (let i=1; i<sorted.length; i++) {
+      let curr = new Date(sorted[i].timestamp).setHours(0,0,0,0);
       if (last - curr === 86400000) { s++; last = curr; }
       else if (last - curr === 0) continue;
       else break;
@@ -109,203 +156,353 @@ const MoodTracker = () => {
     setStreak(s);
   };
 
-  const handleQuickMood = async (s) => {
-    if (!currentUser) return;
-    await addDoc(collection(db, "users", currentUser.uid, "mood_logs"), {
-      score: s,
-      createdAt: serverTimestamp(),
-      mood: s >= 15 ? "Good" : s >= 10 ? "Neutral" : "Bad"
+  /* actions ------------------------------------------------------ */
+  const logMood = async (mood) => {
+    setSelected(mood);
+    if (!currentUser) { showToast('Sign in to save your mood 🔐'); return; }
+    await addDoc(collection(db, 'users', currentUser.uid, 'mood_logs'), {
+      score: mood.score, mood: mood.label, createdAt: serverTimestamp(),
     });
     await addPoints(currentUser.uid, 'MOOD_LOG');
+    showToast(`${mood.emoji} ${mood.label} logged! +10 pts`);
     fetchData();
   };
 
-  const handleJournalOpen = async () => {
-    if (!currentUser) return;
-    setIsJournalOpen(true);
-    try {
-      const q = query(collection(db, "users", currentUser.uid, "journal"), orderBy("createdAt", "desc"), limit(5));
-      const snapshot = await getDocs(q);
-      setJournalHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (e) {
-      console.error("Journal Fetch Error:", e);
-      setJournalHistory([]);
-    }
+  const saveJournal = async () => {
+    if (!journalText.trim() || !currentUser) return;
+    await addDoc(collection(db, 'users', currentUser.uid, 'journal'), {
+      text: journalText, createdAt: serverTimestamp(),
+    });
+    await addPoints(currentUser.uid, 'JOURNAL');
+    setJournalText(''); setJournalOpen(false);
+    showToast('Journal saved! +15 pts 📓');
   };
 
-  const saveJournalEntry = async () => {
-    if (!journalEntry.trim() || !currentUser) return;
-    try {
-      await addDoc(collection(db, "users", currentUser.uid, "journal"), {
-        text: journalEntry,
-        createdAt: serverTimestamp()
-      });
-      await addPoints(currentUser.uid, 'JOURNAL');
-      setJournalEntry("");
-      setIsJournalOpen(false);
-      alert("Journal saved! +15 Points");
-      handleJournalOpen();
-    } catch (e) {
-      console.error(e);
-    }
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3000);
   };
 
-  const s_style = {
-    container: { minHeight: "100vh", background: "#0a0a0a", color: "#fff", padding: "20px", fontFamily: "'Inter', sans-serif" },
-    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "15px", maxWidth: "900px", margin: "20px auto" },
-    card: { background: "rgba(255, 255, 255, 0.05)", backdropFilter: "blur(10px)", border: "1px solid rgba(255, 255, 255, 0.1)", borderRadius: "20px", padding: "20px", textAlign: "center", cursor: "pointer" },
-    statRow: { display: "flex", justifyContent: "space-around", background: "rgba(255,255,255,0.03)", padding: "15px", borderRadius: "20px", border: "1px solid rgba(255,255,255,0.05)", marginBottom: "30px" },
-    stat: { textAlign: "center" },
-    val: { fontSize: "1.2rem", fontWeight: "bold", color: "#00f2fe" },
-    lab: { fontSize: "0.7rem", color: "#666", textTransform: "uppercase", marginTop: "5px" },
-    chart: { background: "rgba(255,255,255,0.03)", padding: "20px", borderRadius: "24px", border: "1px solid rgba(255,255,255,0.05)", maxWidth: "900px", margin: "0 auto" },
-    modalOverlay: { position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.85)", backdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
-    modal: { background: "#161616", borderRadius: "24px", padding: "30px", width: "90%", maxWidth: "450px", border: "1px solid #333" },
-    btn: { background: "linear-gradient(135deg, #00AEEF 0%, #0077b6 100%)", color: "white", border: "none", padding: "12px 20px", borderRadius: "12px", cursor: "pointer", fontWeight: "bold", width: "100%", marginTop: "10px" },
-    input: { width: "100%", background: "#222", border: "1px solid #333", borderRadius: "12px", padding: "12px", color: "#fff", marginTop: "10px" }
+  /* shared styles */
+  const pageStyle = {
+    minHeight: '100vh',
+    background: 'linear-gradient(145deg,#e8d5f5 0%,#d0c4f0 30%,#c2d5f5 65%,#f0d5f7 100%)',
+    fontFamily: "'Nunito', sans-serif",
+    padding: '0 0 100px',
   };
 
-  const Modal = ({ children, onClose }) => (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={s_style.modalOverlay} onClick={onClose}>
-        <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} style={s_style.modal} onClick={e => e.stopPropagation()}>
-          {children}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+  const headerStyle = {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    padding: '20px 24px 10px',
+  };
+
+  /* ── render: status ─────────────────────────────────────────── */
+  const renderStatus = () => (
+    <div style={{ padding: '10px 24px 0' }}>
+      <h2 style={{
+        fontSize: 28, fontWeight: 900, lineHeight: 1.25,
+        color: '#4a4a6a', marginBottom: 24,
+      }}>
+        How are you{' '}
+        <span style={{ fontStyle: 'italic', fontWeight: 900, color: '#1a1a2e' }}>describe your</span>
+        <br />
+        <span style={{ color: '#1a1a2e' }}>Feeling today?</span>
+      </h2>
+
+      {/* mood grid */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:24 }}>
+        {MOODS.map(m => (
+          <MoodCard key={m.label} mood={m} selected={selectedMood?.label === m.label} onSelect={logMood} />
+        ))}
+      </div>
+
+      {/* tip */}
+      <AnimatePresence>
+        {selectedMood && (
+          <motion.div
+            initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
+            style={{
+              background: 'rgba(255,255,255,0.8)', backdropFilter:'blur(12px)',
+              borderRadius: 18, padding: '14px 18px', marginBottom: 16,
+              border: `1.5px solid ${selectedMood.accent}44`,
+              color: '#4a4a6a', fontSize: 14, fontWeight: 600,
+            }}
+          >
+            💡 {selectedMood.tip}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* action buttons */}
+      <motion.button
+        whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
+        onClick={() => setView('insights')}
+        style={{
+          width:'100%', padding:'16px 0', borderRadius:50,
+          background:'linear-gradient(135deg,#8B5CF6,#7C3AED)',
+          color:'#fff', border:'none', fontFamily:'inherit',
+          fontSize:16, fontWeight:800, cursor:'pointer',
+          boxShadow:'0 8px 24px rgba(139,92,246,.35)',
+          marginBottom:12,
+        }}
+      >
+        Talk with AI 💬
+      </motion.button>
+
+      <button
+        onClick={() => setJournalOpen(true)}
+        style={{
+          width:'100%', padding:'14px 0', borderRadius:50,
+          background:'rgba(255,255,255,0.7)', backdropFilter:'blur(10px)',
+          color:'#7C3AED', border:'1.5px solid rgba(139,92,246,.3)',
+          fontFamily:'inherit', fontSize:15, fontWeight:700, cursor:'pointer',
+        }}
+      >
+        Write your thoughts ✍️
+      </button>
+    </div>
   );
 
-  return (
-    <div style={s_style.container}>
-      <h1 style={{ textAlign: "center", fontSize: "1.8rem", fontWeight: "800", marginBottom: "30px", background: "linear-gradient(to right, #4facfe, #00f2fe)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Mood Studio</h1>
+  /* ── render: insights ───────────────────────────────────────── */
+  const renderInsights = () => {
+    const last7 = WEEK_DAYS.map((d,i) => {
+      const entry = moodData[moodData.length - 7 + i];
+      return { day: d, score: entry?.score || 0, mood: entry?.mood };
+    });
 
-      <div style={s_style.statRow}>
-        <div style={s_style.stat}><div style={s_style.val}>🔥 {streak}</div><div style={s_style.lab}>Streak</div></div>
-        <div style={s_style.stat}><div style={s_style.val}>📊 {avgScore}</div><div style={s_style.lab}>Avg Mood</div></div>
-        <div style={s_style.stat}><div style={s_style.val}>🏆 Level</div><div style={s_style.lab}>Wellness</div></div>
-      </div>
+    const stressLevel = avgScore > 0 ? Math.max(0, 25 - parseFloat(avgScore)) : 12;
 
-      <div style={{ textAlign: "center", marginBottom: "30px" }}>
-        <p style={{ color: "#888", marginBottom: "10px" }}>Quick log: How are you now?</p>
-        <div style={{ display: "flex", justifyContent: "center", gap: "15px" }}>
-          {[{ e: "😔", s: 5 }, { e: "😐", s: 12 }, { e: "😊", s: 18 }, { e: "🌟", s: 22 }].map(m => (
-            <motion.button key={m.e} whileHover={{ scale: 1.3 }} whileTap={{ scale: 0.9 }} style={{ fontSize: "2rem", background: "none", border: "none", cursor: "pointer" }} onClick={() => handleQuickMood(m.s)}>{m.e}</motion.button>
-          ))}
-        </div>
-      </div>
+    return (
+      <div style={{ padding:'10px 24px 0' }}>
+        <h2 style={{ fontSize:28, fontWeight:900, color:'#4a4a6a', lineHeight:1.2, marginBottom:24 }}>
+          Your Mental <span style={{ color:'#1a1a2e', display:'block' }}>Insights</span>
+        </h2>
 
-      <div style={s_style.grid}>
-        <motion.div style={s_style.card} whileHover={{ y: -5 }} onClick={() => setShowQuizModal(true)}><span>📝</span><div style={{ marginTop: "10px" }}>Quiz</div></motion.div>
-        <motion.div style={s_style.card} whileHover={{ y: -5 }} onClick={() => setIsMoodBoostModalOpen(true)}><span>🎮</span><div style={{ marginTop: "10px" }}>Games</div></motion.div>
-        <motion.div style={s_style.card} whileHover={{ y: -5 }} onClick={handleJournalOpen}><span>📓</span><div style={{ marginTop: "10px" }}>Journal</div></motion.div>
-        <motion.div style={s_style.card} whileHover={{ y: -5 }} onClick={() => setIsBreathingOpen(true)}><span>🧘</span><div style={{ marginTop: "10px" }}>Breathe</div></motion.div>
-      </div>
+        {/* mood trend */}
+        <div style={{
+          background:'rgba(255,255,255,0.75)', backdropFilter:'blur(16px)',
+          borderRadius:24, padding:20, marginBottom:16,
+          border:'1px solid rgba(255,255,255,.9)',
+          boxShadow:'0 4px 20px rgba(0,0,0,.06)',
+        }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <span style={{ fontWeight:800, color:'#1a1a2e', fontSize:15 }}>Mood Trend</span>
+            <span style={{ fontSize:12, color:'#8B5CF6', fontWeight:700, background:'rgba(139,92,246,.1)', padding:'4px 10px', borderRadius:20 }}>7 days</span>
+          </div>
 
-      <div style={s_style.chart}>
-        <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ margin: 0, fontSize: "1rem" }}>Mood Journey</h3>
-          {!isLoading && moodData.length > 0 && (
-            <div style={{ fontSize: "0.8rem", padding: "4px 12px", background: "rgba(0,242,254,0.1)", borderRadius: "20px", color: "#00f2fe" }}>
-              {avgScore >= 18 ? "Stable & Positive" : avgScore >= 12 ? "Mildly Variable" : "Support Recommended"}
-            </div>
-          )}
-          <span style={{ fontSize: "0.8rem", color: "#666" }}>30 Day View</span>
-        </div>
-        {isLoading ? <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center" }}>Loading...</div> :
-          moodData.length === 0 ? <div style={{ height: "200px", display: "flex", alignItems: "center", justifyContent: "center", color: "#444" }}>Log your mood to see trends</div> :
-            <div>
-              <div style={{ width: '100%', height: 200 }}>
-                <ResponsiveContainer>
-                  <AreaChart data={moodData}>
-                    <defs>
-                      <linearGradient id="color" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#00f2fe" stopOpacity={0.2} />
-                        <stop offset="95%" stopColor="#00f2fe" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#222" vertical={false} />
-                    <XAxis dataKey="date" hide />
-                    <YAxis hide domain={[0, 25]} />
-                    <Tooltip contentStyle={{ background: "#111", border: "1px solid #333", borderRadius: "10px" }} />
-                    <Area type="monotone" dataKey="score" stroke="#00f2fe" strokeWidth={2} fill="url(#color)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-        }
-      </div>
-
-      {showQuizModal && (
-        <Modal onClose={() => setShowQuizModal(false)}>
-          {showTips ? (
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "3rem" }}>{mood === "Good" ? "🌈" : "🍃"}</div>
-              <h3>Mood: {mood}</h3>
-              <p style={{ color: "#aaa" }}>{moodTips[mood][0]}</p>
-              <button style={s_style.btn} onClick={() => setShowQuizModal(false)}>Done</button>
-            </div>
+          {isLoading ? (
+            <div style={{ height:100, display:'flex', alignItems:'center', justifyContent:'center', color:'#aaa' }}>Loading…</div>
+          ) : moodData.length === 0 ? (
+            <div style={{ height:100, display:'flex', alignItems:'center', justifyContent:'center', color:'#bbb', fontSize:13 }}>Log your mood to see trends</div>
           ) : (
-            <div>
-              <h3>{quizQuestions[quizStep].q}</h3>
-              {quizQuestions[quizStep].options.map((o, i) => (
-                <button key={i} style={{ ...s_style.btn, background: "#222" }} onClick={() => {
-                  const newScore = quizScore + (3 - i) * 2 + 10;
-                  if (quizStep < 4) { setQuizStep(quizStep + 1); setQuizScore(newScore); }
-                  else {
-                    setMood(newScore >= 18 ? "Good" : newScore >= 13 ? "Neutral" : "Bad");
-                    setShowTips(true);
-                    handleQuickMood(newScore); // Already adds points via handleQuickMood
-                    addPoints(currentUser.uid, 'QUIZ');
-                  }
-                }}>{o}</button>
+            <ResponsiveContainer width="100%" height={100}>
+              <AreaChart data={last7}>
+                <defs>
+                  <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#8B5CF6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}   />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,.06)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fontSize:10, fill:'#aaa', fontFamily:'Nunito' }} axisLine={false} tickLine={false} />
+                <YAxis hide domain={[0,25]} />
+                <Tooltip
+                  contentStyle={{ background:'rgba(255,255,255,.95)', border:'none', borderRadius:12, fontSize:12 }}
+                  formatter={(v,n,p) => [p.payload.mood || v, 'Mood']}
+                />
+                <Area type="monotone" dataKey="score" stroke="#8B5CF6" strokeWidth={2.5} fill="url(#moodGrad)" dot={{ fill:'#8B5CF6', r:3 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* widget row */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+          {/* stress */}
+          <Widget label="Stress Level" accent="linear-gradient(135deg,#f97316,#fb923c)" style={{}}>
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.7)', marginBottom:6 }}>
+              <span>Low</span><span>High</span>
+            </div>
+            <div style={{ display:'flex', alignItems:'flex-end', gap:3, height:36 }}>
+              {[30,50,40,70,55,65,stressLevel * 4].map((h,i) => (
+                <div key={i} style={{
+                  flex:1, borderRadius:4,
+                  height:`${Math.min(h,100)}%`,
+                  background:'rgba(255,255,255,0.7)',
+                }} />
               ))}
             </div>
-          )}
+          </Widget>
+
+          {/* impact calendar */}
+          <Widget label="Impact" accent="linear-gradient(135deg,#8B5CF6,#6D28D9)" style={{}}>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,.7)', textAlign:'right', marginBottom:6 }}>High</div>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3 }}>
+              {Array.from({length:28}).map((_,i) => (
+                <div key={i} style={{
+                  aspectRatio:'1', borderRadius:3,
+                  background: i < streak ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.25)',
+                }} />
+              ))}
+            </div>
+          </Widget>
+        </div>
+
+        {/* sleep quality */}
+        <div style={{
+          background:'rgba(255,255,255,0.75)', backdropFilter:'blur(16px)',
+          borderRadius:20, padding:'14px 18px',
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          border:'1px solid rgba(255,255,255,.9)',
+          boxShadow:'0 4px 16px rgba(0,0,0,.06)',
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ fontSize:28 }}>💤</div>
+            <div>
+              <div style={{ fontWeight:800, color:'#1a1a2e', fontSize:14 }}>Sleep Quality</div>
+              <div style={{ fontWeight:700, color:'#8B5CF6', fontSize:18 }}>6.8 <span style={{ fontSize:12, fontWeight:600, color:'#aaa' }}>hr/day</span></div>
+            </div>
+          </div>
+          <svg width="60" height="30" viewBox="0 0 60 30" fill="none">
+            <path d="M0 25 Q10 5 20 15 Q30 25 40 10 Q50 0 60 8" stroke="#22c55e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+          </svg>
+        </div>
+
+        {/* quick stats */}
+        <div style={{ display:'flex', gap:12, marginTop:16 }}>
+          {[
+            { label:'Streak', value:`🔥 ${streak}d` },
+            { label:'Avg Mood', value:`📊 ${avgScore}` },
+            { label:'Logs', value:`📝 ${moodData.length}` },
+          ].map(s => (
+            <div key={s.label} style={{
+              flex:1, background:'rgba(255,255,255,0.7)', backdropFilter:'blur(10px)',
+              borderRadius:16, padding:'12px 10px', textAlign:'center',
+              border:'1px solid rgba(255,255,255,.9)',
+            }}>
+              <div style={{ fontWeight:800, fontSize:16, color:'#1a1a2e' }}>{s.value}</div>
+              <div style={{ fontSize:10, color:'#aaa', fontWeight:700, marginTop:3, textTransform:'uppercase', letterSpacing:1 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* breathe */}
+        <motion.button
+          whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
+          onClick={() => setBreathOpen(true)}
+          style={{
+            width:'100%', marginTop:20, padding:'14px 0', borderRadius:50,
+            background:'linear-gradient(135deg,#8B5CF6,#7C3AED)',
+            color:'#fff', border:'none', fontFamily:'inherit',
+            fontSize:15, fontWeight:800, cursor:'pointer',
+            boxShadow:'0 8px 24px rgba(139,92,246,.35)',
+          }}
+        >
+          Start Breathing Exercise 🧘
+        </motion.button>
+      </div>
+    );
+  };
+
+  /* ── main render ────────────────────────────────────────────── */
+  return (
+    <div style={pageStyle}>
+      {/* header */}
+      <div style={headerStyle}>
+        {view === 'insights' ? (
+          <button onClick={() => setView('status')} style={{ background:'rgba(255,255,255,0.6)', border:'none', borderRadius:50, width:36, height:36, cursor:'pointer', fontSize:16 }}>‹</button>
+        ) : <div />}
+        <span style={{ fontWeight:800, fontSize:16, color:'#1a1a2e' }}>
+          {view === 'status' ? 'Mood Status' : 'Mood Insights'}
+        </span>
+        <button
+          onClick={() => setView(v => v === 'status' ? 'insights' : 'status')}
+          style={{ background:'rgba(255,255,255,0.6)', border:'none', borderRadius:50, width:36, height:36, cursor:'pointer', fontSize:16 }}
+        >
+          {view === 'status' ? '📊' : '😊'}
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={view}
+          initial={{ opacity:0, x: view === 'insights' ? 40 : -40 }}
+          animate={{ opacity:1, x:0 }}
+          exit={{ opacity:0, x: view === 'insights' ? -40 : 40 }}
+          transition={{ duration:.3 }}
+        >
+          {view === 'status' ? renderStatus() : renderInsights()}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Journal modal */}
+      {journalOpen && (
+        <Modal onClose={() => setJournalOpen(false)}>
+          <h3 style={{ fontWeight:900, color:'#1a1a2e', marginBottom:16 }}>Daily Journal 📓</h3>
+          <textarea
+            value={journalText}
+            onChange={e => setJournalText(e.target.value)}
+            placeholder="What's on your mind today…"
+            style={{
+              width:'100%', height:120, border:'1.5px solid #e0d5f5',
+              borderRadius:16, padding:14, fontFamily:'Nunito',
+              fontSize:14, resize:'none', outline:'none', color:'#1a1a2e',
+            }}
+          />
+          <motion.button
+            whileTap={{ scale:.97 }} onClick={saveJournal}
+            style={{
+              width:'100%', marginTop:12, padding:'14px 0', borderRadius:50,
+              background:'linear-gradient(135deg,#8B5CF6,#7C3AED)',
+              color:'#fff', border:'none', fontFamily:'Nunito',
+              fontSize:15, fontWeight:800, cursor:'pointer',
+            }}
+          >
+            Save Entry ✓
+          </motion.button>
         </Modal>
       )}
 
-      {isJournalOpen && (
-        <Modal onClose={() => setIsJournalOpen(false)}>
-          <h3>Daily Journal</h3>
-          <textarea style={{ ...s_style.input, height: "100px", resize: "none" }} value={journalEntry} onChange={e => setJournalEntry(e.target.value)} placeholder="Dear Diary..." />
-          <button style={s_style.btn} onClick={saveJournalEntry}>Save</button>
-          <div style={{ marginTop: "20px", maxHeight: "150px", overflowY: "auto" }}>
-            {journalHistory.map(h => <div key={h.id} style={{ background: "#222", padding: "10px", borderRadius: "10px", marginBottom: "8px", fontSize: "0.8rem" }}>{h.text}</div>)}
+      {/* Breathe modal */}
+      {breathOpen && (
+        <Modal onClose={() => setBreathOpen(false)}>
+          <h3 style={{ fontWeight:900, color:'#1a1a2e', textAlign:'center', marginBottom:8 }}>Breathe 🌬️</h3>
+          <p style={{ textAlign:'center', color:'#7777aa', fontSize:13, marginBottom:24 }}>Follow the circle — inhale as it grows, exhale as it shrinks.</p>
+          <div style={{ display:'flex', justifyContent:'center' }}>
+            <motion.div
+              animate={{ scale:[1, 1.5, 1] }}
+              transition={{ duration:6, repeat:Infinity, ease:'easeInOut' }}
+              style={{
+                width:100, height:100, borderRadius:'50%',
+                background:'linear-gradient(135deg,#8B5CF6,#c084fc)',
+                boxShadow:'0 0 40px rgba(139,92,246,.4)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                color:'#fff', fontWeight:800, fontSize:13,
+              }}
+            >
+              Breathe
+            </motion.div>
           </div>
         </Modal>
       )}
 
-      {isBreathingOpen && (
-        <Modal onClose={() => setIsBreathingOpen(false)}>
-          <h3 style={{ textAlign: "center" }}>Breathe</h3>
-          <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 6, repeat: Infinity }} style={{ width: "80px", height: "80px", background: "#00f2fe", borderRadius: "50%", margin: "40px auto", boxShadow: "0 0 30px rgba(0,242,254,0.4)" }} />
-        </Modal>
-      )}
-
-      {isMoodBoostModalOpen && (
-        <Modal onClose={() => setIsMoodBoostModalOpen(false)}>
-          <h3>Games</h3>
-          <button style={{ ...s_style.btn, background: "#222" }} onClick={() => { setIsTicTacToeOpen(true); setIsMoodBoostModalOpen(false); }}>🎮 Tic Tac Toe</button>
-        </Modal>
-      )}
-
-      {/* Game Modals (Simplified for brevity but functional) */}
-      {isTicTacToeOpen && (
-        <Modal onClose={() => setIsTicTacToeOpen(false)}>
-          <h3>Tic Tac Toe</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "5px", width: "180px", margin: "0 auto" }}>
-            {ticTacToeBoard.map((v, i) => (
-              <div key={i} onClick={() => {
-                if (v || winner) return;
-                const nb = [...ticTacToeBoard]; nb[i] = "X"; setTicTacToeBoard(nb);
-                // Simple win check logic...
-                setTicTacToeBoard(nb);
-              }} style={{ width: "55px", height: "55px", background: "#222", display: "flex", alignItems: "center", justifyContent: "center" }}>{v}</div>
-            ))}
-          </div>
-          <button style={s_style.btn} onClick={() => { setTicTacToeBoard(Array(9).fill(null)); setWinner(null); }}>Reset</button>
-        </Modal>
-      )}
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:20 }}
+            style={{
+              position:'fixed', bottom:100, left:'50%', transform:'translateX(-50%)',
+              background:'rgba(139,92,246,.95)', color:'#fff',
+              padding:'12px 24px', borderRadius:50, fontWeight:700, fontSize:14,
+              zIndex:2000, whiteSpace:'nowrap',
+              boxShadow:'0 8px 24px rgba(139,92,246,.4)',
+            }}
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

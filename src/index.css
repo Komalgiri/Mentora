@@ -1,22 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #121212; /* Default Dark Mode BG */
-  color: #ffffff;
+:root {
+  --gradient-bg: linear-gradient(135deg, #e8d5f5 0%, #d4c5f0 30%, #c5d8f7 60%, #f0d5f5 100%);
+  --gradient-purple: linear-gradient(135deg, #9b59b6, #7b2d8b);
+  --gradient-blue: linear-gradient(135deg, #667eea, #764ba2);
+  --card-happy: #d4edda;
+  --card-angry: #fde8cc;
+  --card-tired: #fce4ec;
+  --card-sad: #d1ecf1;
+  --accent-purple: #8B5CF6;
+  --accent-violet: #7C3AED;
+  --text-dark: #1a1a2e;
+  --text-mid: #4a4a6a;
+  --text-light: #8888aa;
+  --white: #ffffff;
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --shadow-soft: 0 8px 32px rgba(139, 92, 246, 0.15);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Nunito', 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--gradient-bg);
+  color: var(--text-dark);
+  min-height: 100vh;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.3); border-radius: 4px; }
